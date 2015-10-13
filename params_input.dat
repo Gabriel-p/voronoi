@@ -1,0 +1,17 @@
+
+
+# Voronoi overdensity detection algorithm parameters.
+
+# Separate values with spaces, don't use commas.
+# For a list of values, enclose in (), [] or {}
+# For a range of values write: min  max  step (no commas)
+
+# Maximum area as a fraction of average area. Must be a list of floats larger
+# than 0.
+#
+#MA (0.5 0.6 0.7 0.8 0.9)
+MA 0.5 0.91 0.1
+
+# Minimum neighbors. Must be a list of integers.
+#
+MN  (10 20 50 100)

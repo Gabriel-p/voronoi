@@ -1,0 +1,4 @@
+*.png
+*.dat
+!params_input.dat
+out_fig_dat/*
