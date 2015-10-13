@@ -2,6 +2,11 @@
 
 # Voronoi overdensity detection algorithm parameters.
 
+
+# Name of input file.
+#
+FN random.dat
+
 # Separate values with spaces, don't use commas.
 # For a list of values, enclose in (), [] or {}
 # For a range of values write: min  max  step (no commas)

@@ -48,15 +48,19 @@ def get_params_in():
             if not line.startswith("#") and line.strip() != '':
                 reader = line.split()
 
-                # Updater.
-                if reader[0] == 'MA':
+                # Maximum area.
+                if reader[0] == 'FN':
+                    in_file = str(reader[1])
+
+                # Maximum area.
+                elif reader[0] == 'MA':
                     avr_area_frac = char_remove(reader)
 
-                # Mode.
+                # Minimum neighbors.
                 elif reader[0] == 'MN':
                     min_neighbors = char_remove(reader)
 
     avr_area_frac = get_vals(avr_area_frac)
     min_neighbors = get_vals(min_neighbors)
 
-    return avr_area_frac, min_neighbors
+    return in_file, avr_area_frac, min_neighbors

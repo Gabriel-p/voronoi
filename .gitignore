@@ -1,3 +1,4 @@
+*.pyc
 *.png
 *.dat
 !params_input.dat

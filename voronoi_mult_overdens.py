@@ -217,14 +217,12 @@ def main():
     start = time.time()
 
     # Read parameters from input file.
-    avr_area_frac, min_neighbors = get_params_in()
+    in_file, avr_area_frac, min_neighbors = get_params_in()
     print avr_area_frac
     print min_neighbors
     raw_input()
 
     # Each sub-list in 'in_file' is a row of the file.
-    # in_file = "junk.dat"
-    in_file = "random.dat"
     f_name = in_file[:-4]
     print 'Processing file: {}'.format(f_name)
 
