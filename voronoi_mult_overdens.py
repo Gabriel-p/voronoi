@@ -1,10 +1,11 @@
 
 
-from scipy.spatial import Voronoi, voronoi_plot_2d
+from scipy.spatial import Voronoi  # , voronoi_plot_2d
 import time
 import numpy as np
 from functions.get_params_in import get_params_in
 from functions.get_coords import get_coords
+from functions.save_to_file import save_to_file
 from functions.make_plots import area_hist, vor_plot
 
 
@@ -198,29 +199,11 @@ def get_cent_rad(pts_neighbors):
     return cent_rad
 
 
-def save_to_file(f_name, a_f, m_n, cent_rad):
-    '''
-    Save center and radius data to file for each parameter value processed.
-    '''
-
-    data_out = 'out_fig_dat/' + f_name + '_' + str(a_f) + '_' + \
-        str(int(m_n)) + '.out'
-    with open(data_out, 'w') as f:
-        f.write("#area_frac   min_neigh    cent_x    cent_y    rad\n")
-    with open(data_out, 'a') as f:
-        for l in cent_rad:
-            f.write("{:.3f}{:>11.0f}{:>16.4f}{:>10.4f}{:>10.4f}\n".format(
-                a_f, m_n, *l))
-
-
 def main():
     start = time.time()
 
     # Read parameters from input file.
     in_file, avr_area_frac, min_neighbors = get_params_in()
-    print avr_area_frac
-    print min_neighbors
-    raw_input()
 
     # Each sub-list in 'in_file' is a row of the file.
     f_name = in_file[:-4]
