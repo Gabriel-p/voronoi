@@ -6,7 +6,7 @@ import numpy as np
 from functions.get_params_in import get_params_in
 from functions.get_coords import get_coords
 from functions.get_cent_rad import get_cent_rad
-from functions.save_to_file import save_to_file
+from functions.save_to_file import save_cent_rad, save_to_log
 from functions.make_plots import area_hist, vor_plot
 
 
@@ -184,36 +184,36 @@ def neighbors_filter(neighbors, min_neighbors):
 
 
 def main():
-    start = time.time()
-
     # Read parameters from input file.
     in_file, mag_range, avr_area_frac, min_neighbors = get_params_in()
 
     # Each sub-list in 'in_file' is a row of the file.
     f_name = in_file[:-4]
-    print 'Processing file: {}'.format(f_name)
+    print 'Processing file: {}\n'.format(f_name)
+    text = 'Processing file: {}\n\n'.format(f_name)
 
     # Get points coordinates.
     x_mr, y_mr, x, y, mag = get_coords(in_file, mag_range)
-    print '\nPhotometric data obtained'
-    print 'Total stars: {}'.format(len(x))
-    print 'Filtered by {} <= mag < {}: {arg3}'.format(*mag_range,
-                                                      arg3=len(x_mr))
+    # print '\nPhotometric data obtained'
+    text += 'Photometric data obtained\n'
+    text += 'Total stars: {}\n'.format(len(x))
+    text += 'Filtered by {} <= mag < {}: {arg3}\n\n'.format(
+        *mag_range, arg3=len(x_mr))
 
     # Obtain average area *using filtered stars*.
     avr_area = ((max(x_mr) - min(x_mr)) * (max(y_mr) - min(y_mr))) / len(x_mr)
-    print "\nAverage area for stars filtered by magnitude: {:.2f}".format(
+    text += "Average area for stars filtered by magnitude: {:.2f}\n".format(
         avr_area)
 
     # Obtain voronoi diagram using the filtered coordinates.
     points = zip(x_mr, y_mr)
     vor = Voronoi(points)
-    print '\nVoronoi diagram obtained'
+    print 'Voronoi diagram obtained'
 
     # Get data on Voronoi diagram.
     print '\nProcessing Voronoi diagram'
     acp_pts, rej_pts, pts_area, pts_vert = get_vor_data(points, vor)
-    print 'Voronoi diagram processed'
+
     # Generate area histogram plot.
     area_hist(f_name, mag_range, pts_area, avr_area)
 
@@ -223,44 +223,49 @@ def main():
     for a_f in avr_area_frac:
         pts_thres, vert_thres = area_filter(acp_pts, pts_area, pts_vert,
                                             avr_area, a_f)
-        print '\nPoints above ({} * average_area) threshold: {}'.format(
+        text1 = '\n* Points above ({} * average_area) threshold: {}\n'.format(
             a_f, len(pts_thres))
+        print text1
+        text += text1
 
-        print '\nDetect shared vertex'
+        print 'Detect shared vertex'
         all_groups = shared_vertex(vert_thres)
-        print 'Shared vertex processed'
 
         print '\nAssign points to groups'
         neighbors = group_stars(pts_thres, vert_thres, all_groups)
-        print 'Points grouped'
 
-        # Defining several minimum neighbors thresholds is cheap.
+        # Define several minimum neighbors thresholds.
         for m_n in min_neighbors:
 
             pts_neighbors = neighbors_filter(neighbors, m_n)
 
-            # Obtain center and radius for each overdensity identified.
-            cent_rad = get_cent_rad(pts_neighbors)
-            print '\nCenter and radii assigned'
-
+            # Check if at least one group was defined with the minimum
+            # required number of neighbors.
             if len(pts_neighbors) > 0:
-                print "Groups with more than {} members: {}".format(
+
+                # Obtain center and radius for each overdensity identified.
+                print ("\nObtain center and radius for {} groups with "
+                       " {} min neighbors".format(len(pts_neighbors), m_n))
+                cent_rad = get_cent_rad(pts_neighbors)
+                text += "Groups with more than {} members: {}\n".format(
                     m_n, len(pts_neighbors))
 
                 # Write data to file.
-                save_to_file(f_name, a_f, m_n, cent_rad)
+                save_cent_rad(f_name, a_f, m_n, cent_rad)
                 # Plot diagram.
                 vor_plot(f_name, a_f, m_n, x, y, mag, pts_thres, pts_neighbors,
                          cent_rad)
             else:
-                print "No groups with more than {} members.".format(
+                text += "No groups with more than {} members.\n".format(
                     m_n)
 
-    # End of run.
-    elapsed = time.time() - start
-    m, s = divmod(elapsed, 60)
-    print '\nFull iteration completed in {:.0f}m {:.0f}s.'.format(m, s)
+    # Store info in log file.
+    save_to_log(f_name, text)
 
 
 if __name__ == "__main__":
+    start = time.time()
     main()
+    elapsed = time.time() - start
+    m, s = divmod(elapsed, 60)
+    print '\nFull run completed in {:.0f}m {:.0f}s.'.format(m, s)

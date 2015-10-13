@@ -6,14 +6,13 @@
 # Name of input file.
 #
 FN random.dat
-#FN junk.dat
 
 # Magnitude range. Range is defined as: [min_mag, max_mag), i.e.: the maximum
 # magnitude value is excluded.
 #
 #  min_mag   max_mag
 #
-MR      1        17.5
+MR      19        20
 
 # Separate values with spaces, don't use commas.
 # For a list of values, enclose in (), [] or {}
@@ -22,7 +21,7 @@ MR      1        17.5
 # Maximum area as a fraction of average area. Must be a list of floats larger
 # than 0.
 #
-MA (0.5 0.75 1.)
+MA (0.5 0.75 0.8)
 #MA 0.5 0.91 0.1
 
 # Minimum neighbors. Must be a list of integers.
