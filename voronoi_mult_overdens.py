@@ -5,6 +5,7 @@ import time
 import numpy as np
 from functions.get_params_in import get_params_in
 from functions.get_coords import get_coords
+from functions.get_cent_rad import get_cent_rad
 from functions.save_to_file import save_to_file
 from functions.make_plots import area_hist, vor_plot
 
@@ -93,8 +94,6 @@ def area_filter(acp_pts, pts_area, pts_vert, avr_area, avr_area_frac):
         if pts_area[i] < avr_area_frac * avr_area:
             pts_thres.append(p)
             vert_thres.append(pts_vert[i])
-    print 'Points above ({} * average area) threshold: {}'.format(
-        avr_area_frac, len(pts_thres))
 
     return pts_thres, vert_thres
 
@@ -184,39 +183,30 @@ def neighbors_filter(neighbors, min_neighbors):
     return pts_neighbors
 
 
-def get_cent_rad(pts_neighbors):
-    '''
-    Assign a center and a radius for each overdensity identified.
-    '''
-    cent_rad = []
-    for g in pts_neighbors:
-        cent_x, cent_y = np.mean(g[0]), np.mean(g[1])
-        dist_cent = np.sqrt((cent_x - np.array(g[0])) ** 2 +
-                            (cent_y - np.array(g[1])) ** 2)
-        rad = max(dist_cent)
-        cent_rad.append([cent_x, cent_y, rad])
-
-    return cent_rad
-
-
 def main():
     start = time.time()
 
     # Read parameters from input file.
-    in_file, avr_area_frac, min_neighbors = get_params_in()
+    in_file, mag_range, avr_area_frac, min_neighbors = get_params_in()
 
     # Each sub-list in 'in_file' is a row of the file.
     f_name = in_file[:-4]
     print 'Processing file: {}'.format(f_name)
 
     # Get points coordinates.
-    x, y, mag = get_coords(in_file)
-    xmin, xmax, ymin, ymax = min(x), max(x), min(y), max(y)
-    avr_area = ((xmax - xmin) * (ymax - ymin)) / len(x)
+    x_mr, y_mr, x, y, mag = get_coords(in_file, mag_range)
     print '\nPhotometric data obtained'
+    print 'Total stars: {}'.format(len(x))
+    print 'Filtered by {} <= mag < {}: {arg3}'.format(*mag_range,
+                                                      arg3=len(x_mr))
 
-    # Obtain voronoi diagram.
-    points = zip(x, y)
+    # Obtain average area *using filtered stars*.
+    avr_area = ((max(x_mr) - min(x_mr)) * (max(y_mr) - min(y_mr))) / len(x_mr)
+    print "\nAverage area for stars filtered by magnitude: {:.2f}".format(
+        avr_area)
+
+    # Obtain voronoi diagram using the filtered coordinates.
+    points = zip(x_mr, y_mr)
     vor = Voronoi(points)
     print '\nVoronoi diagram obtained'
 
@@ -225,7 +215,7 @@ def main():
     acp_pts, rej_pts, pts_area, pts_vert = get_vor_data(points, vor)
     print 'Voronoi diagram processed'
     # Generate area histogram plot.
-    area_hist(f_name, pts_area, avr_area)
+    area_hist(f_name, mag_range, pts_area, avr_area)
 
     # Get overdensities according to the two parameter values.
 
@@ -233,7 +223,8 @@ def main():
     for a_f in avr_area_frac:
         pts_thres, vert_thres = area_filter(acp_pts, pts_area, pts_vert,
                                             avr_area, a_f)
-        print '\nArea filter applied for {} value'.format(a_f)
+        print '\nPoints above ({} * average_area) threshold: {}'.format(
+            a_f, len(pts_thres))
 
         print '\nDetect shared vertex'
         all_groups = shared_vertex(vert_thres)
@@ -247,21 +238,23 @@ def main():
         for m_n in min_neighbors:
 
             pts_neighbors = neighbors_filter(neighbors, m_n)
-            print "\nGroups with more than {} members: {}".format(
-                m_n, len(pts_neighbors))
 
             # Obtain center and radius for each overdensity identified.
             cent_rad = get_cent_rad(pts_neighbors)
-            print 'Center and radii assigned'
+            print '\nCenter and radii assigned'
 
             if len(pts_neighbors) > 0:
+                print "Groups with more than {} members: {}".format(
+                    m_n, len(pts_neighbors))
 
                 # Write data to file.
                 save_to_file(f_name, a_f, m_n, cent_rad)
-                print 'Data saved to file'
                 # Plot diagram.
                 vor_plot(f_name, a_f, m_n, x, y, mag, pts_thres, pts_neighbors,
                          cent_rad)
+            else:
+                print "No groups with more than {} members.".format(
+                    m_n)
 
     # End of run.
     elapsed = time.time() - start

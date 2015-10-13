@@ -52,6 +52,10 @@ def get_params_in():
                 if reader[0] == 'FN':
                     in_file = str(reader[1])
 
+                # Magnitude range.
+                elif reader[0] == 'MR':
+                    mag_range = [float(reader[1]), float(reader[2])]
+
                 # Maximum area.
                 elif reader[0] == 'MA':
                     avr_area_frac = char_remove(reader)
@@ -63,4 +67,4 @@ def get_params_in():
     avr_area_frac = get_vals(avr_area_frac)
     min_neighbors = get_vals(min_neighbors)
 
-    return in_file, avr_area_frac, min_neighbors
+    return in_file, mag_range, avr_area_frac, min_neighbors

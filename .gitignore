@@ -1,5 +1,7 @@
 *.pyc
 *.png
+*.PNG
 *.dat
+*.DAT
 !params_input.dat
 out_fig_dat/*

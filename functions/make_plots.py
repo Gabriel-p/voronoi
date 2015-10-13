@@ -1,6 +1,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.offsetbox as offsetbox
 
 
 def save_plot(f_name, fig_id, fig, a_f, m_n):
@@ -16,12 +17,24 @@ def save_plot(f_name, fig_id, fig, a_f, m_n):
     plt.savefig(fig_name, dpi=300)
 
 
-def area_hist(f_name, pts_area, avr_area):
+def area_hist(f_name, mag_range, pts_area, avr_area):
     '''
     '''
     fig = plt.figure(figsize=(10, 10))
-    plt.hist(pts_area / avr_area, bins=50, range=[0., 3.])
+    ax = plt.subplot(111)
+    plt.xlabel('(Area of polygon) / (average area)', fontsize=12)
+    plt.ylabel("Frame's area (normalized)", fontsize=12)
+    # Area of each point's polygon as a fraction of the average area.
+    frac_area = pts_area / avr_area
+    # Normalized histogram.
+    weights = np.ones_like(frac_area)/len(frac_area)
+    plt.hist(frac_area, bins=50, range=[0., 3.], weights=weights, normed=0)
     plt.axvline(x=1., color='r', ls='-')
+    # Add text box.
+    text = '{} <= mag < {}'.format(*mag_range)
+    ob = offsetbox.AnchoredText(text, pad=0.5, loc=1, prop=dict(size=13))
+    ob.patch.set(alpha=0.5)
+    ax.add_artist(ob)
 
     # Save plot to file.
     save_plot(f_name, 'area_histo', fig, '', '')
