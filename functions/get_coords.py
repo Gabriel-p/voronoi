@@ -8,7 +8,7 @@ def get_coords(in_file, mag_range):
     '''
     if in_file == 'random.dat':
         # Generate random data.
-        N = 5000
+        N = 100000
         x = np.random.uniform(low=0., high=1000., size=(N))
         y = np.random.uniform(low=0., high=1000., size=(N))
         mag = np.random.uniform(low=10., high=24., size=(N))

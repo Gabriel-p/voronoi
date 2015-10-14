@@ -6,6 +6,7 @@ import numpy as np
 from functions.get_params_in import get_params_in
 from functions.get_coords import get_coords
 from functions.get_cent_rad import get_cent_rad
+from functions.group_overdens import merge_overdens
 from functions.save_to_file import save_cent_rad, save_to_log
 from functions.make_plots import area_hist, vor_plot
 
@@ -38,10 +39,11 @@ def area_of_polygon(points):
 
 def get_vor_data(points, vor):
     '''
-    Obtain from Voronoi diagram: acp_pts (points whose diagram/cell/polygon
-    contains no negative indexes), rej_pts (points with negative index vertex),
-    pts_area (area of each cell associated with each accepted point),
-    pts_vert (indexes of vertices associated with each point).
+    Obtain from Voronoi diagram:
+    - acp_pts (points whose diagram/cell/polygon contains no negative indexes)
+    - rej_pts (points with negative index vertex)
+    - pts_area (area of each cell associated with each accepted point)
+    - pts_vert (indexes of vertices associated with each point).
     '''
 
     tot_sols = len(vor.regions)
@@ -83,8 +85,8 @@ def get_vor_data(points, vor):
 
 def area_filter(acp_pts, pts_area, pts_vert, avr_area, avr_area_frac):
     '''
-    Filter those points whose area is below a certain fraction of the average
-    area.
+    Filter out those points whose area is below a certain fraction of the
+    average area value passed.
 
     http://stackoverflow.com/a/32058576/1391441
     '''
@@ -183,61 +185,6 @@ def neighbors_filter(neighbors, min_neighbors):
     return pts_neighbors
 
 
-def check_cent_rad(cent_rad, cent_rad_all):
-    '''
-    Take new groups found with a new minimum neighbors value, compare with
-    existing groups (obtained with larger m_n values) and decide which one to
-    keep.
-
-    Criteria: if the distance between the centers is less than the maximum
-    radius value, then the two groups are considered the same one.
-    If the old group has a larger radius, then that one is kept. If the new
-    group has a larger radius, then the new one is kept.
-    '''
-
-    new_cent_rads = []
-    # For each new overdensity identified.
-    for n_cx, n_cy, n_r in cent_rad:
-        new_overdens, overwrite_overdens = False, False
-
-        # For each already stored overdensity.
-        for idx, [c_x, c_y, r] in enumerate(cent_rad_all):
-
-            # Only process if the groups are not the same.
-            if [n_cx, n_cy, n_r] != [c_x, c_y, r]:
-                d = np.sqrt((n_cx - c_x) ** 2 + (n_cy - c_y) ** 2)
-                # See if the center of one overdensity is within the area of
-                # the other.
-                if d <= max(r, n_r):
-                    # If the old radius is larger than the new one.
-                    if r >= n_r:
-                        # Keep the old overdensity.
-                        print 'Keep (x={:.2f}, y={:.2f}, r={:.2f})'.format(
-                            c_x, c_y, r)
-                        print ' versus (x={:.2f}, y={:.2f}, r={:.2f})'.format(
-                            n_cx, n_cy, n_r)
-                    else:
-                        # Keep the new one and discard the old.
-                        ow_idx = idx
-                        overwrite_overdens = True
-                        print 'Replace (x={:.2f}, y={:.2f}, r={:.2f})'.format(
-                            c_x, c_y, r)
-                        print ' with (x={:.2f}, y={:.2f}, r={:.2f})'.format(
-                            n_cx, n_cy, n_r)
-
-        # If the new overdensity was not found within any known one, add it.
-        if new_overdens:
-            if overwrite_overdens:
-                cent_rad_all[ow_idx] = [n_cx, n_cy, n_r]
-            else:
-                # No match with a known overdensity. Add to list.
-                # print 'Add (cx={:.2f}, cy={:.2f}, r={:.2f})'.format(
-                #     n_cx, n_cy, n_r)
-                new_cent_rads.append([n_cx, n_cy, n_r])
-
-    return new_cent_rads, cent_rad_all
-
-
 def main():
     # Read parameters from input file.
     in_file, mag_range, avr_area_frac, min_neighbors = get_params_in()
@@ -315,6 +262,8 @@ def main():
                 print ("\nObtain center and radius for {} groups with "
                        " {} min neighbors".format(len(pts_neighbors), m_n))
                 cent_rad = get_cent_rad(pts_neighbors)
+
+                merge_overdens(cent_rad)
 
                 cent_rad_all[0] = cent_rad
                 cent_rad_all[1] = [m_n] * len(cent_rad)
