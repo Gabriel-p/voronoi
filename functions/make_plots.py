@@ -80,7 +80,8 @@ def star_size(mag_data):
     return 0.1 + factor * 10 ** ((np.array(mag_data) - min(mag_data)) / -2.5)
 
 
-def vor_plot(f_name, a_f, x, y, mag, pts_thres, neighbors_plot, cent_rad, vor):
+def vor_plot(f_name, a_f, x, y, mag, x_mr, y_mr, pts_thres, neighbors_plot,
+             cent_rad, vor):
     # figure size.
     fig = plt.figure(figsize=(20, 20))
 
@@ -103,9 +104,23 @@ def vor_plot(f_name, a_f, x, y, mag, pts_thres, neighbors_plot, cent_rad, vor):
     plt.grid(b=True, which='minor', color='k', linestyle='-', zorder=1)
     # st_sizes_arr = star_size(mag)
     # plt.scatter(x, y, c='k', s=st_sizes_arr)
-    plt.scatter(x, y, c='k', marker='.', s=1)
 
-    # voronoi_plot_2d(vor)
+    # All points.
+    plt.scatter(x, y, c='gray', marker='.', s=7, lw=0.)
+    # Points that passed the magnitude filter.
+    plt.scatter(x_mr, y_mr, marker='o', s=3, lw=0.2, facecolor='none',
+                edgecolor='b')
+    # Points that passed the area threshold filter.
+    x_t, y_t = zip(*pts_thres)
+    plt.scatter(x_t, y_t, marker='o', s=3, lw=0.2, facecolor='none',
+                edgecolor='g')
+    # Neighbors points.
+    for g in neighbors_plot:
+        plt.scatter(g[0], g[1], marker='o', s=3, lw=0.2, facecolor='none',
+                    edgecolor='r')
+
+    # # Plot Voronoi cells
+    # # voronoi_plot_2d(vor)
     # plt.plot(vor.vertices[:, 0], vor.vertices[:, 1], '+')
     # for simplex in vor.ridge_vertices:
     #     simplex = np.asarray(simplex)
@@ -122,13 +137,10 @@ def vor_plot(f_name, a_f, x, y, mag, pts_thres, neighbors_plot, cent_rad, vor):
     # x, y = zip(*pts_thres)
     # plt.scatter(x, y, s=30, c='b', marker='o')
 
-    for g in neighbors_plot:
-        plt.scatter(g[0], g[1], s=10, c='c', marker='x')
-
     # Print radii
     for c_r in cent_rad:
         circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='r',
-                            fill=False, lw=1.5)
+                            fill=False, lw=1.2)
         fig.gca().add_artist(circle)
 
     # Save plot to file.

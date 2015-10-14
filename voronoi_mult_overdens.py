@@ -196,41 +196,43 @@ def check_cent_rad(cent_rad, cent_rad_all):
     '''
 
     new_cent_rads = []
-    # for each new overdensity identified.
+    # For each new overdensity identified.
     for n_cx, n_cy, n_r in cent_rad:
-        new_overdens, overwrite_overdens = True, False
-        # for each already stored overdensity.
+        new_overdens, overwrite_overdens = False, False
+
+        # For each already stored overdensity.
         for idx, [c_x, c_y, r] in enumerate(cent_rad_all):
-            d = np.sqrt((n_cx - c_x) ** 2 + (n_cy - c_y) ** 2)
-            # See if the new overdensity is located inside this already
-            # found overdensity.
-            # The center of one overdensity is within the area of the other.
-            if d <= max(r, n_r):
-                # If the old radius is larger than the new one.
-                if r >= n_r:
-                    # Keep the old overdensity.
-                    new_overdens = False
-                    print 'Keep (cx={:.2f}, cy={:.2f}, r={:.2f})'.format(
-                        c_x, c_y, r)
-                else:
-                    # Keep the new one and discard the old.
-                    ow_idx = idx
-                    overwrite_overdens = True
-                    print 'Replace (cx={:.2f}, cy={:.2f}, r={:.2f})'.format(
-                        c_x, c_y, r)
-                    print 'with (cx={:.2f}, cy={:.2f}, r={:.2f})'.format(
-                        n_cx, n_cy, n_r)
-            else:
-                # No match with this known overdensity. Add to list.
-                print 'Add (cx={:.2f}, cy={:.2f}, r={:.2f})'.format(
-                    n_cx, n_cy, n_r)
-                pass
+
+            # Only process if the groups are not the same.
+            if [n_cx, n_cy, n_r] != [c_x, c_y, r]:
+                d = np.sqrt((n_cx - c_x) ** 2 + (n_cy - c_y) ** 2)
+                # See if the center of one overdensity is within the area of
+                # the other.
+                if d <= max(r, n_r):
+                    # If the old radius is larger than the new one.
+                    if r >= n_r:
+                        # Keep the old overdensity.
+                        print 'Keep (x={:.2f}, y={:.2f}, r={:.2f})'.format(
+                            c_x, c_y, r)
+                        print ' versus (x={:.2f}, y={:.2f}, r={:.2f})'.format(
+                            n_cx, n_cy, n_r)
+                    else:
+                        # Keep the new one and discard the old.
+                        ow_idx = idx
+                        overwrite_overdens = True
+                        print 'Replace (x={:.2f}, y={:.2f}, r={:.2f})'.format(
+                            c_x, c_y, r)
+                        print ' with (x={:.2f}, y={:.2f}, r={:.2f})'.format(
+                            n_cx, n_cy, n_r)
 
         # If the new overdensity was not found within any known one, add it.
         if new_overdens:
             if overwrite_overdens:
                 cent_rad_all[ow_idx] = [n_cx, n_cy, n_r]
             else:
+                # No match with a known overdensity. Add to list.
+                # print 'Add (cx={:.2f}, cy={:.2f}, r={:.2f})'.format(
+                #     n_cx, n_cy, n_r)
                 new_cent_rads.append([n_cx, n_cy, n_r])
 
     return new_cent_rads, cent_rad_all
@@ -256,7 +258,7 @@ def main():
     text += 'Filtered by {} <= mag < {}: {arg3}\n\n'.format(
         *mag_range, arg3=len(x_mr))
 
-    # Obtain voronoi diagram using the filtered coordinates.
+    # Obtain Voronoi diagram using the *magnitude filtered coordinates*.
     points = zip(x_mr, y_mr)
     vor = Voronoi(points)
     print 'Voronoi diagram obtained'
@@ -284,7 +286,7 @@ def main():
     for a_f in avr_area_frac:
         pts_thres, vert_thres = area_filter(acp_pts, pts_area, pts_vert,
                                             most_prob_a, a_f)
-        text1 = ("\n* Points above ({:.2f} * average_area) threshold: "
+        text1 = ("\n* Points above ({:.2f} * most_prob_area) threshold: "
                  "{}\n".format(a_f, len(pts_thres)))
         print text1
         text += text1
@@ -298,7 +300,8 @@ def main():
         # Define several minimum neighbors thresholds.
         # for m_n in min_neighbors:
         cent_rad_all = [[], []]
-        for m_n in np.arange(300, 9, -10):
+        # for m_n in np.arange(300, 9, -10):
+        for m_n in [10]:
 
             pts_neighbors = neighbors_filter(neighbors, m_n)
 
@@ -313,15 +316,18 @@ def main():
                        " {} min neighbors".format(len(pts_neighbors), m_n))
                 cent_rad = get_cent_rad(pts_neighbors)
 
-                # Check that the detected overdensities are unique and not
-                # found previously.
-                new_cent_rads, cent_rad_all[0] = check_cent_rad(
-                    cent_rad, cent_rad_all[0])
+                cent_rad_all[0] = cent_rad
+                cent_rad_all[1] = [m_n] * len(cent_rad)
 
-                # If any *new* overdensities were found, add them to the list.
-                if new_cent_rads:
-                    cent_rad_all[0] += new_cent_rads
-                    cent_rad_all[1] += [m_n] * len(new_cent_rads)
+                # # Check that the detected overdensities are unique and not
+                # # found previously.
+                # new_cent_rads, cent_rad_all[0] = check_cent_rad(
+                #     cent_rad, cent_rad_all[0])
+
+                # # If any *new* overdensities were found, add them to the list.
+                # if new_cent_rads:
+                #     cent_rad_all[0] += new_cent_rads
+                #     cent_rad_all[1] += [m_n] * len(new_cent_rads)
 
             else:
                 text += "No groups with more than {} members.\n".format(
@@ -331,8 +337,8 @@ def main():
             # Write data to file.
             save_cent_rad(f_name, a_f, cent_rad_all)
             # Plot diagram.
-            vor_plot(f_name, a_f, x, y, mag, pts_thres, pts_neighbors,
-                     cent_rad_all[0], vor)
+            vor_plot(f_name, a_f, x, y, mag, x_mr, y_mr, pts_thres,
+                     pts_neighbors, cent_rad_all[0], vor)
         else:
             print 'No groups found with any number of members.'
 
