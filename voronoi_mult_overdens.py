@@ -1,6 +1,6 @@
 
 
-from scipy.spatial import Voronoi  # , voronoi_plot_2d
+from scipy.spatial import Voronoi
 import time
 import numpy as np
 from functions.get_params_in import get_params_in
@@ -183,14 +183,70 @@ def neighbors_filter(neighbors, min_neighbors):
     return pts_neighbors
 
 
+def check_cent_rad(cent_rad, cent_rad_all):
+    '''
+    Take new groups found with a new minimum neighbors value, compare with
+    existing groups (obtained with larger m_n values) and decide which one to
+    keep.
+
+    Criteria: if the distance between the centers is less than the maximum
+    radius value, then the two groups are considered the same one.
+    If the old group has a larger radius, then that one is kept. If the new
+    group has a larger radius, then the new one is kept.
+    '''
+
+    new_cent_rads = []
+    # for each new overdensity identified.
+    for n_cx, n_cy, n_r in cent_rad:
+        new_overdens, overwrite_overdens = True, False
+        # for each already stored overdensity.
+        for idx, [c_x, c_y, r] in enumerate(cent_rad_all):
+            d = np.sqrt((n_cx - c_x) ** 2 + (n_cy - c_y) ** 2)
+            # See if the new overdensity is located inside this already
+            # found overdensity.
+            # The center of one overdensity is within the area of the other.
+            if d <= max(r, n_r):
+                # If the old radius is larger than the new one.
+                if r >= n_r:
+                    # Keep the old overdensity.
+                    new_overdens = False
+                    print 'Keep (cx={:.2f}, cy={:.2f}, r={:.2f})'.format(
+                        c_x, c_y, r)
+                else:
+                    # Keep the new one and discard the old.
+                    ow_idx = idx
+                    overwrite_overdens = True
+                    print 'Replace (cx={:.2f}, cy={:.2f}, r={:.2f})'.format(
+                        c_x, c_y, r)
+                    print 'with (cx={:.2f}, cy={:.2f}, r={:.2f})'.format(
+                        n_cx, n_cy, n_r)
+            else:
+                # No match with this known overdensity. Add to list.
+                print 'Add (cx={:.2f}, cy={:.2f}, r={:.2f})'.format(
+                    n_cx, n_cy, n_r)
+                pass
+
+        # If the new overdensity was not found within any known one, add it.
+        if new_overdens:
+            if overwrite_overdens:
+                cent_rad_all[ow_idx] = [n_cx, n_cy, n_r]
+            else:
+                new_cent_rads.append([n_cx, n_cy, n_r])
+
+    return new_cent_rads, cent_rad_all
+
+
 def main():
     # Read parameters from input file.
     in_file, mag_range, avr_area_frac, min_neighbors = get_params_in()
 
     # Each sub-list in 'in_file' is a row of the file.
     f_name = in_file[:-4]
-    print 'Processing file: {}\n'.format(f_name)
-    text = 'Processing file: {}\n\n'.format(f_name)
+    # Create log file.
+    text = 'Processing file: {}\n'.format(f_name)
+    print text
+    save_to_log(f_name, text, 0)
+    text = ''
 
     # Get points coordinates.
     x_mr, y_mr, x, y, mag = get_coords(in_file, mag_range)
@@ -199,11 +255,6 @@ def main():
     text += 'Total stars: {}\n'.format(len(x))
     text += 'Filtered by {} <= mag < {}: {arg3}\n\n'.format(
         *mag_range, arg3=len(x_mr))
-
-    # Obtain average area *using filtered stars*.
-    avr_area = ((max(x_mr) - min(x_mr)) * (max(y_mr) - min(y_mr))) / len(x_mr)
-    text += "Average area for stars filtered by magnitude: {:.2f}\n".format(
-        avr_area)
 
     # Obtain voronoi diagram using the filtered coordinates.
     points = zip(x_mr, y_mr)
@@ -214,17 +265,27 @@ def main():
     print '\nProcessing Voronoi diagram'
     acp_pts, rej_pts, pts_area, pts_vert = get_vor_data(points, vor)
 
+    # Obtain average area *using filtered stars*.
+    avr_area = ((max(x_mr) - min(x_mr)) * (max(y_mr) - min(y_mr))) / len(x_mr)
+    # Filter out large border values.
+    pts_area_filt = []
+    for _ in pts_area:
+        if _ < (5 * avr_area):
+            pts_area_filt.append(_)
     # Generate area histogram plot.
-    area_hist(f_name, mag_range, pts_area, avr_area)
+    area_hist(f_name, mag_range, pts_area_filt, avr_area)
 
-    # Get overdensities according to the two parameter values.
+    # Calculate most probable area for the Voronoi cells.
+    most_prob_a = (5. / 7.) * np.mean(pts_area_filt)
+    text += ("Most probable area for Voronoi cells (stars filtered by "
+             "magnitude): {:.2f}\n".format(most_prob_a))
 
     # Smaller values imply faster processing since more stars are filtered out.
     for a_f in avr_area_frac:
         pts_thres, vert_thres = area_filter(acp_pts, pts_area, pts_vert,
-                                            avr_area, a_f)
-        text1 = '\n* Points above ({} * average_area) threshold: {}\n'.format(
-            a_f, len(pts_thres))
+                                            most_prob_a, a_f)
+        text1 = ("\n* Points above ({:.2f} * average_area) threshold: "
+                 "{}\n".format(a_f, len(pts_thres)))
         print text1
         text += text1
 
@@ -235,32 +296,48 @@ def main():
         neighbors = group_stars(pts_thres, vert_thres, all_groups)
 
         # Define several minimum neighbors thresholds.
-        for m_n in min_neighbors:
+        # for m_n in min_neighbors:
+        cent_rad_all = [[], []]
+        for m_n in np.arange(300, 9, -10):
 
             pts_neighbors = neighbors_filter(neighbors, m_n)
 
             # Check if at least one group was defined with the minimum
             # required number of neighbors.
             if len(pts_neighbors) > 0:
+                text += "Groups with more than {} members: {}\n".format(
+                    m_n, len(pts_neighbors))
 
                 # Obtain center and radius for each overdensity identified.
                 print ("\nObtain center and radius for {} groups with "
                        " {} min neighbors".format(len(pts_neighbors), m_n))
                 cent_rad = get_cent_rad(pts_neighbors)
-                text += "Groups with more than {} members: {}\n".format(
-                    m_n, len(pts_neighbors))
 
-                # Write data to file.
-                save_cent_rad(f_name, a_f, m_n, cent_rad)
-                # Plot diagram.
-                vor_plot(f_name, a_f, m_n, x, y, mag, pts_thres, pts_neighbors,
-                         cent_rad)
+                # Check that the detected overdensities are unique and not
+                # found previously.
+                new_cent_rads, cent_rad_all[0] = check_cent_rad(
+                    cent_rad, cent_rad_all[0])
+
+                # If any *new* overdensities were found, add them to the list.
+                if new_cent_rads:
+                    cent_rad_all[0] += new_cent_rads
+                    cent_rad_all[1] += [m_n] * len(new_cent_rads)
+
             else:
                 text += "No groups with more than {} members.\n".format(
                     m_n)
 
+        if cent_rad_all[0]:
+            # Write data to file.
+            save_cent_rad(f_name, a_f, cent_rad_all)
+            # Plot diagram.
+            vor_plot(f_name, a_f, x, y, mag, pts_thres, pts_neighbors,
+                     cent_rad_all[0], vor)
+        else:
+            print 'No groups found with any number of members.'
+
     # Store info in log file.
-    save_to_log(f_name, text)
+    save_to_log(f_name, text, 1)
 
 
 if __name__ == "__main__":
