@@ -1,7 +1,10 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 import matplotlib.offsetbox as offsetbox
+from scipy.ndimage.filters import gaussian_filter
+import bisect
 from scipy.spatial import voronoi_plot_2d
 
 
@@ -37,7 +40,7 @@ def area_hist(f_name, mag_range, pts_area_filt, avr_area):
     '''
     '''
     fig = plt.figure(figsize=(10, 10))
-    ax = plt.subplot(111)
+    ax1 = plt.subplot(111)
     plt.xlabel('(polygon area) / <polygon area>', fontsize=12)
     plt.ylabel("Voronoi cell areas (normalized)", fontsize=12)
     # Area of each point's polygon as a fraction of the average area.
@@ -62,11 +65,11 @@ def area_hist(f_name, mag_range, pts_area_filt, avr_area):
     text = '{} <= mag < {}'.format(*mag_range)
     ob = offsetbox.AnchoredText(text, pad=0.5, loc=7, prop=dict(size=13))
     ob.patch.set(alpha=0.5)
-    ax.add_artist(ob)
+    ax1.add_artist(ob)
     # get handles
-    handles, labels = ax.get_legend_handles_labels()
+    handles, labels = ax1.get_legend_handles_labels()
     # use them in the legend
-    ax.legend(handles, labels, loc='upper right', numpoints=2, fontsize=13)
+    ax1.legend(handles, labels, loc='upper right', numpoints=2, fontsize=13)
     # Save plot to file.
     save_plot(f_name, 'area_histo', fig, round(mag_range[1], 1), '', '')
 
@@ -81,11 +84,42 @@ def star_size(mag_data):
     return 0.1 + factor * 10 ** ((np.array(mag_data) - min(mag_data)) / -2.5)
 
 
+def dens_map(x_data, y_data, new_cent_rad):
+    '''
+    Create a 2D density map according to parameters passed.
+    '''
+    xmin, xmax = min(x_data), max(x_data)
+    ymin, ymax = min(y_data), max(y_data)
+    # Calculate the number of bins used.
+    x_rang, y_rang = (xmax - xmin), (ymax - ymin)
+    bin_width = min(x_rang, y_rang) / 100.
+    # Number of bins in x,y given the bin width.
+    binsxy = [int(x_rang / bin_width), int(y_rang / bin_width)]
+
+    st_dev = 2.
+    hist, xedges, yedges = np.histogram2d(
+        x_data, y_data, range=[[xmin, xmax], [ymin, ymax]], bins=binsxy)
+    h_g = gaussian_filter(hist, st_dev, mode='constant')
+
+    dens_cent_rad = []
+    for c_r in new_cent_rad:
+        x_cent_bin = bisect.bisect_left(xedges, c_r[0])
+        y_cent_bin = bisect.bisect_left(yedges, c_r[1])
+        # Store center bin coords for the filtered hist.
+        dens_cent_rad.append([(x_cent_bin - 1), (y_cent_bin - 1),
+                             c_r[2] / bin_width])
+
+    return h_g, dens_cent_rad
+
+
 def vor_plot(f_name, m_rang, a_f, m_n, x, y, mag, x_mr, y_mr, pts_thres,
              neighbors_plot, cent_rad, new_cent_rad, vor):
     # figure size.
-    fig = plt.figure(figsize=(20, 20))
+    # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 40))
+    fig = plt.figure(figsize=(40, 20))
+    gs = gridspec.GridSpec(2, 4)
 
+    plt.subplot(gs[0:2, 0:2])
     plt.gca().set_aspect('equal')
     x_min, x_max = min(x), max(x)
     y_min, y_max = min(y), max(y)
@@ -106,26 +140,34 @@ def vor_plot(f_name, m_rang, a_f, m_n, x, y, mag, x_mr, y_mr, pts_thres,
     # All points.
     # st_sizes_arr = star_size(mag)
     # plt.scatter(x, y, c='gray', s=st_sizes_arr, lw=0.)
-    plt.scatter(x, y, c='gray', marker='.', s=7, lw=0.)
+    plt.scatter(x, y, c='gray', marker='.', s=7, lw=0., label='All stars')
     # Points that passed the magnitude filter.
     plt.scatter(x_mr, y_mr, marker='o', s=3, lw=0.2, facecolor='none',
-                edgecolor='b')
+                edgecolor='b', label='Mag filter')
     # Points that passed the area threshold filter.
     x_t, y_t = zip(*pts_thres)
     plt.scatter(x_t, y_t, marker='o', s=3, lw=0.2, facecolor='none',
-                edgecolor='g')
-    # Neighbors points.
+                edgecolor='g', label='Area filter')
+    # Neighbor points.
+    x_n, y_n = [], []
     for g in neighbors_plot:
-        plt.scatter(g[0], g[1], marker='o', s=3, lw=0.2, facecolor='none',
-                    edgecolor='r')
+        x_n += list(g[0])
+        y_n += list(g[1])
+    plt.scatter(x_n, y_n, marker='o', s=3, lw=0.2, facecolor='none',
+                edgecolor='r', label='Neighbor stars')
+    # Legend.
+    leg = plt.legend(fancybox=True, loc='upper right', scatterpoints=1,
+                     fontsize=10, markerscale=3.5)
+    # Set the alpha value of the legend.
+    leg.get_frame().set_alpha(0.85)
 
-    # Print radii
+    # Print radii for merged groups.
     for c_r in cent_rad:
         circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='b', ls='dashed',
                             fill=False, lw=1.2)
         fig.gca().add_artist(circle)
 
-    # Print radii
+    # Print radii for final groups.
     for c_r in new_cent_rad:
         circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='r',
                             fill=False, lw=1.2)
@@ -148,6 +190,86 @@ def vor_plot(f_name, m_rang, a_f, m_n, x, y, mag, x_mr, y_mr, pts_thres,
 
     # x, y = zip(*pts_thres)
     # plt.scatter(x, y, s=30, c='b', marker='o')
+
+    cm = plt.cm.gist_earth_r
+
+    # All stars density map.
+    ax1 = plt.subplot(gs[0, 2])
+    ax1.xaxis.set_visible(False)
+    ax1.yaxis.set_visible(False)
+    h_g, dens_cent_rad = dens_map(x, y, new_cent_rad)
+    ax1.imshow(h_g.transpose(), origin='lower', cmap=cm, aspect='auto')
+    # Print radii
+    for c_r in dens_cent_rad:
+        circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='r', lw=1.5,
+                            fill=False)
+        fig.gca().add_artist(circle)
+    # Add text box.
+    text = '1- All stars'
+    ob = offsetbox.AnchoredText(text, pad=0.5, loc=1, prop=dict(size=10))
+    ob.patch.set(alpha=0.5)
+    ax1.add_artist(ob)
+
+    # Magnitude filtered stars density map.
+    ax2 = plt.subplot(gs[0, 3])
+    ax2.xaxis.set_visible(False)
+    ax2.yaxis.set_visible(False)
+    # Add extreme points so aspect is the same for all density maps.
+    x_mr = x_mr + [min(x), max(x)]
+    y_mr = y_mr + [min(y), max(y)]
+    h_g, dens_cent_rad = dens_map(x_mr, y_mr, new_cent_rad)
+    ax2.imshow(h_g.transpose(), origin='lower', cmap=cm, aspect='auto')
+    # Print radii
+    for c_r in dens_cent_rad:
+        circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='r', lw=1.5,
+                            fill=False)
+        fig.gca().add_artist(circle)
+    # Add text box.
+    text = '2- Magnitude filter'
+    ob = offsetbox.AnchoredText(text, pad=0.5, loc=1, prop=dict(size=10))
+    ob.patch.set(alpha=0.5)
+    ax2.add_artist(ob)
+
+    # Area threshold filtered stars density map.
+    ax3 = plt.subplot(gs[1, 2])
+    ax3.xaxis.set_visible(False)
+    ax3.yaxis.set_visible(False)
+    # Add extreme points so aspect is the same for all density maps.
+    x_t = list(x_t) + [min(x), max(x)]
+    y_t = list(y_t) + [min(y), max(y)]
+    h_g, dens_cent_rad = dens_map(x_t, y_t, new_cent_rad)
+    ax3.imshow(h_g.transpose(), origin='lower', cmap=cm, aspect='auto')
+    # Print radii
+    for c_r in dens_cent_rad:
+        circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='r', lw=1.5,
+                            fill=False)
+        fig.gca().add_artist(circle)
+    # Add text box.
+    text = '3- Area filter'
+    ob = offsetbox.AnchoredText(text, pad=0.5, loc=1, prop=dict(size=10))
+    ob.patch.set(alpha=0.5)
+    ax3.add_artist(ob)
+
+    # Neighbors stars density map.
+    ax4 = plt.subplot(gs[1, 3])
+    # ax4.set_aspect(aspect=1)
+    ax4.xaxis.set_visible(False)
+    ax4.yaxis.set_visible(False)
+    # Add extreme points so aspect is the same for all density maps.
+    x_n = list(x_n) + [min(x), max(x)]
+    y_n = list(y_n) + [min(y), max(y)]
+    h_g, dens_cent_rad = dens_map(x_n, y_n, new_cent_rad)
+    ax4.imshow(h_g.transpose(), origin='lower', cmap=cm, aspect='auto')
+    # Print radii
+    for c_r in dens_cent_rad:
+        circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='r', lw=1.5,
+                            fill=False)
+        fig.gca().add_artist(circle)
+    # Add text box.
+    text = '4- Neighbor stars'
+    ob = offsetbox.AnchoredText(text, pad=0.5, loc=1, prop=dict(size=10))
+    ob.patch.set(alpha=0.5)
+    ax4.add_artist(ob)
 
     # Save plot to file.
     save_plot(f_name, 'voronoi', fig, m_rang, a_f, m_n)

@@ -270,6 +270,7 @@ def main():
             # Write data to file.
             save_cent_rad(f_name, mag_range[1], a_f, m_n, new_cent_rad)
             # Plot diagram.
+            print '\nPlotting.'
             vor_plot(f_name, mag_range[1], a_f, m_n, x, y, mag, x_mr, y_mr,
                      pts_thres, pts_neighbors, old_cent_rad, new_cent_rad, vor)
         else:
@@ -277,6 +278,7 @@ def main():
 
     # Store info in log file.
     save_to_log(f_name, text, mag_range[1], 1)
+    print '\nDone.'
 
 
 if __name__ == "__main__":
