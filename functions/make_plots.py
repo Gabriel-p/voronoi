@@ -96,7 +96,7 @@ def dens_map(x_data, y_data, new_cent_rad):
     # Number of bins in x,y given the bin width.
     binsxy = [int(x_rang / bin_width), int(y_rang / bin_width)]
 
-    st_dev = 2.
+    st_dev = 1.5
     hist, xedges, yedges = np.histogram2d(
         x_data, y_data, range=[[xmin, xmax], [ymin, ymax]], bins=binsxy)
     h_g = gaussian_filter(hist, st_dev, mode='constant')

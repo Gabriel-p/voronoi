@@ -85,7 +85,7 @@ def get_vor_data(points, vor):
 
 def area_filter(acp_pts, pts_area, pts_vert, avr_area, avr_area_frac):
     '''
-    Filter out those points whose area is below a certain fraction of the
+    Filter out those points whose area is *above* a certain fraction of the
     average area value passed.
 
     http://stackoverflow.com/a/32058576/1391441
@@ -93,6 +93,7 @@ def area_filter(acp_pts, pts_area, pts_vert, avr_area, avr_area_frac):
 
     pts_thres, vert_thres = [], []
     for i, p in enumerate(acp_pts):
+        # Keep point if its area is below the maximum threshold.
         if pts_area[i] < avr_area_frac * avr_area:
             pts_thres.append(p)
             vert_thres.append(pts_vert[i])
@@ -144,13 +145,28 @@ def shared_vertex(vert_thres):
     return all_groups
 
 
+def element_count(p1, p2):
+    '''
+    Count points in nested lists.
+    '''
+    count = 0
+    # For each group defined.
+    for g in p1:
+        # For each point in each group.
+        for _ in g:
+            # For each point above threshold.
+            count += len(p2)
+
+    return count
+
+
 def group_stars(pts_thres, vert_thres, all_groups):
     '''
     For each defined group, find the points that correspond to it.
     '''
 
-    tot_sols = len(all_groups)
-    milestones = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    tot_sols = element_count(all_groups, pts_thres)
+    milestones, c = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100], 0
 
     neighbors = [[] for _ in range(len(all_groups))]
     # For each group defined.
@@ -159,12 +175,13 @@ def group_stars(pts_thres, vert_thres, all_groups):
         for vert_pt in g:
             # For each point above threshold.
             for j, p in enumerate(pts_thres):
+                c += 1
                 verts = vert_thres[j]
                 if verts == vert_pt:
                     neighbors[i].append(p)
 
-        # Print percentage done.
-        milestones = print_perc(i, tot_sols, milestones)
+                # Print percentage done.
+                milestones = print_perc(c, tot_sols, milestones)
 
     return neighbors
 
@@ -229,7 +246,7 @@ def main():
     for a_f in avr_area_frac:
         pts_thres, vert_thres = area_filter(acp_pts, pts_area, pts_vert,
                                             most_prob_a, a_f)
-        text1 = ("\n* Points above ({:.2f} * most_prob_area) threshold: "
+        text1 = ("\n* Points below ({:.2f} * most_prob_area) threshold: "
                  "{}\n".format(a_f, len(pts_thres)))
         print text1
         text += text1
@@ -237,11 +254,13 @@ def main():
         print 'Detect shared vertex'
         all_groups = shared_vertex(vert_thres)
 
+        # This is a costly process.
         print '\nAssign points to groups'
         neighbors = group_stars(pts_thres, vert_thres, all_groups)
 
         # Keep only those groups with a higher number of members than
         # min_neighbors.
+        print '\nDiscard groups with total number of members below the limit.'
         pts_neighbors = neighbors_filter(neighbors, m_n)
 
         # Check if at least one group was defined with the minimum
