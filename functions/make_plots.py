@@ -5,16 +5,17 @@ import matplotlib.offsetbox as offsetbox
 from scipy.spatial import voronoi_plot_2d
 
 
-def save_plot(f_name, fig_id, fig, a_f):
+def save_plot(f_name, fig_id, fig, m_rang, a_f, m_n):
     '''
     Save output png file.
     '''
     fig.tight_layout()
-    if a_f == '':
-        fig_name = 'out_fig_dat/' + f_name + '_' + fig_id + '.png'
+    if m_n == '':
+        fig_name = 'out_fig_dat/' + f_name + '_' + fig_id + '_' +\
+            str(round(m_rang, 1)) + '.png'
     else:
-        fig_name = 'out_fig_dat/' + f_name + '_' + fig_id + '_' + str(a_f) +\
-            '_' + '.png'
+        fig_name = 'out_fig_dat/' + f_name + '_' + fig_id + '_' +\
+            str(round(m_rang, 1)) + '_' + str(a_f) + '_' + str(m_n) + '.png'
     plt.savefig(fig_name, dpi=300)
 
 
@@ -67,7 +68,7 @@ def area_hist(f_name, mag_range, pts_area_filt, avr_area):
     # use them in the legend
     ax.legend(handles, labels, loc='upper right', numpoints=2, fontsize=13)
     # Save plot to file.
-    save_plot(f_name, 'area_histo', fig, '')
+    save_plot(f_name, 'area_histo', fig, round(mag_range[1], 1), '', '')
 
 
 def star_size(mag_data):
@@ -80,8 +81,8 @@ def star_size(mag_data):
     return 0.1 + factor * 10 ** ((np.array(mag_data) - min(mag_data)) / -2.5)
 
 
-def vor_plot(f_name, a_f, x, y, mag, x_mr, y_mr, pts_thres, neighbors_plot,
-             cent_rad, vor):
+def vor_plot(f_name, m_rang, a_f, m_n, x, y, mag, x_mr, y_mr, pts_thres,
+             neighbors_plot, cent_rad, new_cent_rad, vor):
     # figure size.
     fig = plt.figure(figsize=(20, 20))
 
@@ -96,16 +97,15 @@ def vor_plot(f_name, a_f, x, y, mag, x_mr, y_mr, pts_thres, neighbors_plot,
     # plt.ylabel('{} ({})'.format('DEC', 'deg'), fontsize=12)
     plt.xlabel('{} ({})'.format('X', 'px'), fontsize=12)
     plt.ylabel('{} ({})'.format('Y', 'px'), fontsize=12)
-
     # Set minor ticks
     plt.minorticks_on()
     # Set grid
     plt.grid(b=True, which='major', color='k', linestyle='-', zorder=1)
     plt.grid(b=True, which='minor', color='k', linestyle='-', zorder=1)
-    # st_sizes_arr = star_size(mag)
-    # plt.scatter(x, y, c='k', s=st_sizes_arr)
 
     # All points.
+    # st_sizes_arr = star_size(mag)
+    # plt.scatter(x, y, c='gray', s=st_sizes_arr, lw=0.)
     plt.scatter(x, y, c='gray', marker='.', s=7, lw=0.)
     # Points that passed the magnitude filter.
     plt.scatter(x_mr, y_mr, marker='o', s=3, lw=0.2, facecolor='none',
@@ -118,6 +118,18 @@ def vor_plot(f_name, a_f, x, y, mag, x_mr, y_mr, pts_thres, neighbors_plot,
     for g in neighbors_plot:
         plt.scatter(g[0], g[1], marker='o', s=3, lw=0.2, facecolor='none',
                     edgecolor='r')
+
+    # Print radii
+    for c_r in cent_rad:
+        circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='b', ls='dashed',
+                            fill=False, lw=1.2)
+        fig.gca().add_artist(circle)
+
+    # Print radii
+    for c_r in new_cent_rad:
+        circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='r',
+                            fill=False, lw=1.2)
+        fig.gca().add_artist(circle)
 
     # # Plot Voronoi cells
     # # voronoi_plot_2d(vor)
@@ -137,11 +149,5 @@ def vor_plot(f_name, a_f, x, y, mag, x_mr, y_mr, pts_thres, neighbors_plot,
     # x, y = zip(*pts_thres)
     # plt.scatter(x, y, s=30, c='b', marker='o')
 
-    # Print radii
-    for c_r in cent_rad:
-        circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='r',
-                            fill=False, lw=1.2)
-        fig.gca().add_artist(circle)
-
     # Save plot to file.
-    save_plot(f_name, 'voronoi', fig, a_f)
+    save_plot(f_name, 'voronoi', fig, m_rang, a_f, m_n)

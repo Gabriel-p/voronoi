@@ -62,7 +62,7 @@ def get_params_in():
 
                 # Minimum neighbors.
                 elif reader[0] == 'MN':
-                    min_neighbors = char_remove(reader)
+                    min_neighbors = int(reader[1])
 
     avr_area_frac = get_vals(avr_area_frac)
     min_neighbors = get_vals(min_neighbors)

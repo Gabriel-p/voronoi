@@ -174,9 +174,6 @@ def neighbors_filter(neighbors, min_neighbors):
     Filter the points that passed the area filter, discarding those which
     have fewer neighbors than the 'min_neighbors' value.
     '''
-
-    # Keep only those groups with a higher number of members than
-    # min_neighbors.
     pts_neighbors = []
     for g in neighbors:
         if len(g) > min_neighbors:
@@ -187,19 +184,18 @@ def neighbors_filter(neighbors, min_neighbors):
 
 def main():
     # Read parameters from input file.
-    in_file, mag_range, avr_area_frac, min_neighbors = get_params_in()
+    in_file, mag_range, avr_area_frac, m_n = get_params_in()
 
     # Each sub-list in 'in_file' is a row of the file.
     f_name = in_file[:-4]
     # Create log file.
     text = 'Processing file: {}\n'.format(f_name)
     print text
-    save_to_log(f_name, text, 0)
+    save_to_log(f_name, text, mag_range[1], 0)
     text = ''
 
     # Get points coordinates.
     x_mr, y_mr, x, y, mag = get_coords(in_file, mag_range)
-    # print '\nPhotometric data obtained'
     text += 'Photometric data obtained\n'
     text += 'Total stars: {}\n'.format(len(x))
     text += 'Filtered by {} <= mag < {}: {arg3}\n\n'.format(
@@ -244,55 +240,42 @@ def main():
         print '\nAssign points to groups'
         neighbors = group_stars(pts_thres, vert_thres, all_groups)
 
-        # Define several minimum neighbors thresholds.
-        # for m_n in min_neighbors:
-        cent_rad_all = [[], []]
-        # for m_n in np.arange(300, 9, -10):
-        for m_n in [10]:
+        # Keep only those groups with a higher number of members than
+        # min_neighbors.
+        pts_neighbors = neighbors_filter(neighbors, m_n)
 
-            pts_neighbors = neighbors_filter(neighbors, m_n)
+        # Check if at least one group was defined with the minimum
+        # required number of neighbors.
+        if len(pts_neighbors) > 0:
+            text += "Groups with more than {} members: {}\n".format(
+                m_n, len(pts_neighbors))
 
-            # Check if at least one group was defined with the minimum
-            # required number of neighbors.
-            if len(pts_neighbors) > 0:
-                text += "Groups with more than {} members: {}\n".format(
-                    m_n, len(pts_neighbors))
+            # Obtain center and radius for each overdensity identified.
+            print ("\nObtain center and radius for {} groups with "
+                   " {} min neighbors".format(len(pts_neighbors), m_n))
+            cent_rad = get_cent_rad(pts_neighbors)
 
-                # Obtain center and radius for each overdensity identified.
-                print ("\nObtain center and radius for {} groups with "
-                       " {} min neighbors".format(len(pts_neighbors), m_n))
-                cent_rad = get_cent_rad(pts_neighbors)
-
-                merge_overdens(cent_rad)
-
-                cent_rad_all[0] = cent_rad
-                cent_rad_all[1] = [m_n] * len(cent_rad)
-
-                # # Check that the detected overdensities are unique and not
-                # # found previously.
-                # new_cent_rads, cent_rad_all[0] = check_cent_rad(
-                #     cent_rad, cent_rad_all[0])
-
-                # # If any *new* overdensities were found, add them to the list.
-                # if new_cent_rads:
-                #     cent_rad_all[0] += new_cent_rads
-                #     cent_rad_all[1] += [m_n] * len(new_cent_rads)
-
+            old_cent_rad, new_cent_rad = merge_overdens(cent_rad)
+            if old_cent_rad:
+                text += ('\n{} groups were merged'.format(
+                         len(cent_rad) - len(new_cent_rad)))
             else:
-                text += "No groups with more than {} members.\n".format(
-                    m_n)
+                text += '\nNo groups were merged.'
+        else:
+            text += "No groups with more than {} members found.\n".format(
+                m_n)
 
-        if cent_rad_all[0]:
+        if new_cent_rad:
             # Write data to file.
-            save_cent_rad(f_name, a_f, cent_rad_all)
+            save_cent_rad(f_name, mag_range[1], a_f, m_n, new_cent_rad)
             # Plot diagram.
-            vor_plot(f_name, a_f, x, y, mag, x_mr, y_mr, pts_thres,
-                     pts_neighbors, cent_rad_all[0], vor)
+            vor_plot(f_name, mag_range[1], a_f, m_n, x, y, mag, x_mr, y_mr,
+                     pts_thres, pts_neighbors, old_cent_rad, new_cent_rad, vor)
         else:
             print 'No groups found with any number of members.'
 
     # Store info in log file.
-    save_to_log(f_name, text, 1)
+    save_to_log(f_name, text, mag_range[1], 1)
 
 
 if __name__ == "__main__":

@@ -15,15 +15,20 @@ FN random.dat
 MR      19        20
 
 # Separate values with spaces, don't use commas.
-# For a list of values, enclose in (), [] or {}
+# For a list of values or a single value, enclose in (), [] or {}.
 # For a range of values write: min  max  step (no commas)
 
-# Maximum area as a fraction of average area. Must be a list of floats larger
-# than 0.
+# Maximum area as a fraction of average area.
+# Must be a list of floats larger than 0 enclosed between parenthesis, e.g.:
 #
-MA (0.5 0.75 0.8)
-#MA 0.5 0.91 0.1
+# (0.5 0.75 0.8)
+#
+# or a range composed of a minimum, maximum and step value, e.g.:
+#
+# 0.5 0.91 0.1.
+#
+MA (0.75)
 
-# Minimum neighbors. Must be a list of integers.
+# Minimum neighbors. Must be a single integer.
 #
-MN  (10 25 50 100)
+MN  10
