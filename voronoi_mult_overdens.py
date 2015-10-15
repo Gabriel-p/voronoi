@@ -262,7 +262,8 @@ def main():
             else:
                 text += '\nNo groups were merged.'
         else:
-            text += "No groups with more than {} members found.\n".format(
+            new_cent_rad = []
+            text += "\nNo groups with more than {} members found.\n".format(
                 m_n)
 
         if new_cent_rad:
@@ -272,7 +273,7 @@ def main():
             vor_plot(f_name, mag_range[1], a_f, m_n, x, y, mag, x_mr, y_mr,
                      pts_thres, pts_neighbors, old_cent_rad, new_cent_rad, vor)
         else:
-            print 'No groups found with any number of members.'
+            print '\nNo groups found with any number of members.'
 
     # Store info in log file.
     save_to_log(f_name, text, mag_range[1], 1)
