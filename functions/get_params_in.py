@@ -65,6 +65,5 @@ def get_params_in():
                     min_neighbors = int(reader[1])
 
     avr_area_frac = get_vals(avr_area_frac)
-    min_neighbors = get_vals(min_neighbors)
 
     return in_file, mag_range, avr_area_frac, min_neighbors
