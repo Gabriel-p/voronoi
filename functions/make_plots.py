@@ -48,7 +48,7 @@ def area_hist(f_name, mag_range, a_f, pts_area_filt, avr_area):
     plt.axvline(x=(5. / 7.), color='k', ls='--', lw=2,
                 label='Most prob polygon area ({:.2f} u^2)'.format(
                     most_prob_a))
-    plt.axvline(x=a_f, color='r', ls='--', lw=2,
+    plt.axvline(x=a_f * (5. / 7.), color='r', ls='--', lw=2,
                 label='Max area fraction: {:.2f} ({:.2f} u^2)'.format(
                     a_f, a_f * most_prob_a))
     # Normalized histogram.
