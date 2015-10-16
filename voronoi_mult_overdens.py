@@ -214,11 +214,11 @@ def main():
     # Get points coordinates.
     x_mr, y_mr, x, y, mag = get_coords(in_file, mag_range)
     text += 'Photometric data obtained\n'
-    text += 'Total stars: {}\n'.format(len(x))
-    text1 = 'Stars filtered by {} <= mag < {}: {arg3}\n'.format(
+    text1 = 'Total stars: {}\n'.format(len(x))
+    text2 = 'Stars filtered by {} <= mag < {}: {arg3}\n'.format(
         *mag_range, arg3=len(x_mr))
-    print text1
-    text += text1
+    print text1, text2
+    text += text1 + text2
 
     # Obtain Voronoi diagram using the *magnitude filtered coordinates*.
     points = zip(x_mr, y_mr)
