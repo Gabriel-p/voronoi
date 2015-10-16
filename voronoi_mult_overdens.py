@@ -271,34 +271,28 @@ def main():
         # Check if at least one group was defined with the minimum
         # required number of neighbors.
         if len(pts_neighbors) > 0:
-            text += "Groups with more than {} members: {}\n".format(
-                m_n, len(pts_neighbors))
 
             # Obtain center and radius for each overdensity identified.
-            print ("\nObtain center and radius for {} groups with "
-                   " {} min neighbors".format(len(pts_neighbors), m_n))
+            text1 = "\nGroups with more than {} members: {}\n".format(
+                m_n, len(pts_neighbors))
+            print text1
+            text += text1
             cent_rad = get_cent_rad(pts_neighbors)
 
             old_cent_rad, new_cent_rad = merge_overdens(cent_rad)
-            if old_cent_rad:
-                text += ('\n{} groups were merged'.format(
-                         len(cent_rad) - len(new_cent_rad)))
-            else:
-                text += '\nNo groups were merged.'
-        else:
-            new_cent_rad = []
-            text += "\nNo groups with more than {} members found.\n".format(
-                m_n)
-
-        if new_cent_rad:
+            text += ('\n{} groups were merged'.format(len(cent_rad) -
+                                                      len(new_cent_rad)))
             # Write data to file.
-            save_cent_rad(f_name, mag_range[1], a_f, m_n, new_cent_rad)
+            save_cent_rad(f_name, mag_range[1], a_f, m_n, new_cent_rad,
+                          old_cent_rad)
             # Plot diagram.
             print '\nPlotting.'
             vor_plot(f_name, mag_range[1], a_f, m_n, x, y, mag, x_mr, y_mr,
                      pts_thres, pts_neighbors, old_cent_rad, new_cent_rad, vor)
         else:
-            print '\nNo groups found with any number of members.'
+            text1 = "\nNo groups with more than {} members found.".format(m_n)
+            print text1
+            text += text1
 
     # Store info in log file.
     save_to_log(f_name, text, mag_range[1], 1)

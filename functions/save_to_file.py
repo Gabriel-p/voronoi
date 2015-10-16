@@ -1,6 +1,6 @@
 
 
-def save_cent_rad(f_name, m_rang, a_f, m_n, cent_rad):
+def save_cent_rad(f_name, m_rang, a_f, m_n, new_cent_rad, old_cent_rad):
     '''
     Save center and radius data to file for each parameter value processed.
     '''
@@ -10,9 +10,17 @@ def save_cent_rad(f_name, m_rang, a_f, m_n, cent_rad):
     with open(data_out, 'w') as f:
         f.write("#area_frac   min_neigh    cent_x    cent_y    rad\n")
     with open(data_out, 'a') as f:
-        for i, l in enumerate(cent_rad):
+        for i, l in enumerate(new_cent_rad):
             f.write("{:.3f}{:>11.0f}{:>16.4f}{:>10.4f}{:>10.4f}\n".format(
                 a_f, m_n, *l))
+
+    if old_cent_rad:
+        with open(data_out, 'a') as f:
+            f.write("#REJECTED GROUPS BELOW.\n")
+        with open(data_out, 'a') as f:
+            for i, l in enumerate(old_cent_rad):
+                f.write("{:.3f}{:>11.0f}{:>16.4f}{:>10.4f}{:>10.4f}\n".format(
+                    a_f, m_n, *l))
 
 
 def save_to_log(f_name, text, m_rang, i):
