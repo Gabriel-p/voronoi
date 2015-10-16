@@ -83,10 +83,10 @@ def get_vor_data(points, vor):
     return acp_pts, rej_pts, pts_area, pts_vert
 
 
-def area_filter(acp_pts, pts_area, pts_vert, avr_area, avr_area_frac):
+def area_filter(acp_pts, pts_area, pts_vert, most_prob_a, a_f):
     '''
-    Filter out those points whose area is *above* a certain fraction of the
-    average area value passed.
+    Filter *out* those points whose area is *above* a certain fraction of the
+    most probable area value passed.
 
     http://stackoverflow.com/a/32058576/1391441
     '''
@@ -94,7 +94,7 @@ def area_filter(acp_pts, pts_area, pts_vert, avr_area, avr_area_frac):
     pts_thres, vert_thres = [], []
     for i, p in enumerate(acp_pts):
         # Keep point if its area is below the maximum threshold.
-        if pts_area[i] < avr_area_frac * avr_area:
+        if pts_area[i] < most_prob_a * a_f:
             pts_thres.append(p)
             vert_thres.append(pts_vert[i])
 
@@ -215,8 +215,10 @@ def main():
     x_mr, y_mr, x, y, mag = get_coords(in_file, mag_range)
     text += 'Photometric data obtained\n'
     text += 'Total stars: {}\n'.format(len(x))
-    text += 'Filtered by {} <= mag < {}: {arg3}\n\n'.format(
+    text1 = 'Stars filtered by {} <= mag < {}: {arg3}\n'.format(
         *mag_range, arg3=len(x_mr))
+    print text1
+    text += text1
 
     # Obtain Voronoi diagram using the *magnitude filtered coordinates*.
     points = zip(x_mr, y_mr)
@@ -234,19 +236,22 @@ def main():
     for _ in pts_area:
         if _ < (5 * avr_area):
             pts_area_filt.append(_)
-    # Generate area histogram plot.
-    area_hist(f_name, mag_range, pts_area_filt, avr_area)
 
     # Calculate most probable area for the Voronoi cells.
     most_prob_a = (5. / 7.) * np.mean(pts_area_filt)
-    text += ("Most probable area for Voronoi cells (stars filtered by "
+    text += ("\nMost probable area for Voronoi cells (stars filtered by "
              "magnitude): {:.2f}\n".format(most_prob_a))
 
     # Smaller values imply faster processing since more stars are filtered out.
     for a_f in avr_area_frac:
+
+        # Generate area histogram plot.
+        area_hist(f_name, mag_range, a_f, pts_area_filt, avr_area)
+
+        # Apply maximum area filter.
         pts_thres, vert_thres = area_filter(acp_pts, pts_area, pts_vert,
                                             most_prob_a, a_f)
-        text1 = ("\n* Points below ({:.2f} * most_prob_area) threshold: "
+        text1 = ("\n* Stars below ({:.2f} * most_prob_area) threshold: "
                  "{}\n".format(a_f, len(pts_thres)))
         print text1
         text += text1

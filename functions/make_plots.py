@@ -5,7 +5,7 @@ import matplotlib.gridspec as gridspec
 import matplotlib.offsetbox as offsetbox
 from scipy.ndimage.filters import gaussian_filter
 import bisect
-from scipy.spatial import voronoi_plot_2d
+# from scipy.spatial import voronoi_plot_2d
 
 
 def save_plot(f_name, fig_id, fig, m_rang, a_f, m_n):
@@ -13,12 +13,9 @@ def save_plot(f_name, fig_id, fig, m_rang, a_f, m_n):
     Save output png file.
     '''
     fig.tight_layout()
-    if m_n == '':
-        fig_name = 'out_fig_dat/' + f_name + '_' + fig_id + '_' +\
-            str(round(m_rang, 1)) + '.png'
-    else:
-        fig_name = 'out_fig_dat/' + f_name + '_' + fig_id + '_' +\
-            str(round(m_rang, 1)) + '_' + str(a_f) + '_' + str(m_n) + '.png'
+    mn_str = '_' + str(m_n) if m_n != '' else ''
+    fig_name = 'out_fig_dat/' + f_name + '_' + fig_id + '_' +\
+        str(round(m_rang, 1)) + '_' + str(a_f) + mn_str + '.png'
     plt.savefig(fig_name, dpi=300)
 
 
@@ -36,42 +33,43 @@ def vor_2d_poisson(y):
     return f_y
 
 
-def area_hist(f_name, mag_range, pts_area_filt, avr_area):
+def area_hist(f_name, mag_range, a_f, pts_area_filt, avr_area):
     '''
     '''
     fig = plt.figure(figsize=(10, 10))
     ax1 = plt.subplot(111)
     plt.xlabel('(polygon area) / <polygon area>', fontsize=12)
-    plt.ylabel("Voronoi cell areas (normalized)", fontsize=12)
+    plt.ylabel("Normalized distribution", fontsize=12)
     # Area of each point's polygon as a fraction of the average area.
     pts_area_f_mean = np.mean(pts_area_filt)
     frac_area = pts_area_filt / pts_area_f_mean
+    most_prob_a = (5. / 7.) * pts_area_f_mean
+    # Vertical lines.
+    plt.axvline(x=(5. / 7.), color='k', ls='--', lw=2,
+                label='Most prob polygon area ({:.2f} u^2)'.format(
+                    most_prob_a))
+    plt.axvline(x=a_f, color='r', ls='--', lw=2,
+                label='Max area fraction: {:.2f} ({:.2f} u^2)'.format(
+                    a_f, a_f * most_prob_a))
     # Normalized histogram.
     weights = np.ones_like(frac_area)/len(frac_area)
     plt.hist(frac_area, color='#C6D8E5', bins=50, range=[0., 4.],
              weights=weights, normed=True)
     # Plot theoretical fit to 2D Poisson Voronoi area distribution.
     x = np.arange(0., 4., 0.05)
-    plt.plot(x, vor_2d_poisson(x), c='#117050', lw=3.5)
-    plt.axvline(x=(avr_area / pts_area_f_mean), color='r', ls='--',
-                lw=2,
-                label='<star area> / <polygon area>\n{:.2f} / {:.2f}'.format(
-                    avr_area, pts_area_f_mean))
-    most_prob_a = (5. / 7.) * pts_area_f_mean
-    plt.axvline(x=(5. / 7.), color='k', ls='--', lw=2,
-                label='Most probable\npolygon area ({:.2f})'.format(
-                    most_prob_a))
+    plt.plot(x, vor_2d_poisson(x), c='#117050', lw=3.5,
+             label='Theoretical distribution')
     # Add text box.
     text = '{} <= mag < {}'.format(*mag_range)
-    ob = offsetbox.AnchoredText(text, pad=0.5, loc=7, prop=dict(size=13))
+    ob = offsetbox.AnchoredText(text, pad=0.5, loc=7, prop=dict(size=11))
     ob.patch.set(alpha=0.5)
     ax1.add_artist(ob)
     # get handles
     handles, labels = ax1.get_legend_handles_labels()
     # use them in the legend
-    ax1.legend(handles, labels, loc='upper right', numpoints=2, fontsize=13)
+    ax1.legend(handles, labels, loc='upper right', numpoints=2, fontsize=11)
     # Save plot to file.
-    save_plot(f_name, 'area_histo', fig, round(mag_range[1], 1), '', '')
+    save_plot(f_name, 'area_histo', fig, round(mag_range[1], 1), a_f, '')
 
 
 def star_size(mag_data):
