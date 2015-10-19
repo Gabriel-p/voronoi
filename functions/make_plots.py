@@ -8,14 +8,16 @@ import bisect
 # from scipy.spatial import voronoi_plot_2d
 
 
-def save_plot(f_name, fig_id, fig, m_rang, a_f, m_n):
+def save_plot(f_name, fig_id, fig, m_rang, area_frac_range, m_n):
     '''
     Save output png file.
     '''
+    a_f_min, a_f_max = [round(_, 2) for _ in area_frac_range]
     fig.tight_layout()
     mn_str = '_' + str(m_n) if m_n != '' else ''
     fig_name = 'out_fig_dat/' + f_name + '_' + fig_id + '_' +\
-        str(round(m_rang, 1)) + '_' + str(a_f) + mn_str + '.png'
+        str(round(m_rang, 1)) + '_' + str(a_f_min) + '_' + str(a_f_max) +\
+        mn_str + '.png'
     plt.savefig(fig_name, dpi=300)
 
 
@@ -33,7 +35,7 @@ def vor_2d_poisson(y):
     return f_y
 
 
-def area_hist(f_name, mag_range, a_f, pts_area_filt, avr_area):
+def area_hist(f_name, mag_range, area_frac_range, pts_area_filt, avr_area):
     '''
     '''
     fig = plt.figure(figsize=(10, 10))
@@ -48,9 +50,13 @@ def area_hist(f_name, mag_range, a_f, pts_area_filt, avr_area):
     plt.axvline(x=(5. / 7.), color='k', ls='--', lw=2,
                 label='Most prob polygon area ({:.2f} u^2)'.format(
                     most_prob_a))
-    plt.axvline(x=a_f * (5. / 7.), color='r', ls='--', lw=2,
+    a_f_min, a_f_max = [round(_, 2) for _ in area_frac_range]
+    plt.axvline(x=a_f_min * (5. / 7.), color='r', ls='--', lw=2,
+                label='Min area fraction: {:.2f} ({:.2f} u^2)'.format(
+                a_f_min, a_f_min * most_prob_a))
+    plt.axvline(x=a_f_max * (5. / 7.), color='r', ls='--', lw=2,
                 label='Max area fraction: {:.2f} ({:.2f} u^2)'.format(
-                    a_f, a_f * most_prob_a))
+                a_f_max, a_f_max * most_prob_a))
     # Normalized histogram.
     weights = np.ones_like(frac_area)/len(frac_area)
     plt.hist(frac_area, color='#C6D8E5', bins=50, range=[0., 4.],
@@ -69,7 +75,41 @@ def area_hist(f_name, mag_range, a_f, pts_area_filt, avr_area):
     # use them in the legend
     ax1.legend(handles, labels, loc='upper right', numpoints=2, fontsize=11)
     # Save plot to file.
-    save_plot(f_name, 'area_histo', fig, round(mag_range[1], 1), a_f, '')
+    save_plot(f_name, 'area_histo', fig, round(mag_range[1], 1),
+              area_frac_range, '')
+
+
+def intens_hist(f_name, mag_range, area_frac_range, intens_area_all,
+                intens_frac):
+    '''
+    '''
+    fig = plt.figure(figsize=(10, 10))
+    ax1 = plt.subplot(111)
+    plt.xlabel("Intensity / (unit area)", fontsize=12)
+    plt.ylabel("Normalized distribution", fontsize=12)
+
+    # Vertical lines.
+    max_val = max(intens_area_all)
+    plt.axvline(x=intens_area_all[0], color='k', ls='--', lw=2,
+                label="(Frame's intensity) / (area unit) = 1.")
+    plt.axvline(x=intens_frac * intens_area_all[0], color='r', ls='--', lw=2,
+                label='Minimum accepted intensity')
+    # Normalized histogram.
+    weights = np.ones_like(intens_area_all)/len(intens_area_all)
+    plt.hist(intens_area_all, color='#C6D8E5', bins=50, range=[0., max_val],
+             weights=weights, normed=True)
+    # Add text box.
+    text = '{} <= mag < {}'.format(*mag_range)
+    ob = offsetbox.AnchoredText(text, pad=0.5, loc=7, prop=dict(size=11))
+    ob.patch.set(alpha=0.5)
+    ax1.add_artist(ob)
+    # get handles
+    handles, labels = ax1.get_legend_handles_labels()
+    # use them in the legend
+    ax1.legend(handles, labels, loc='upper right', numpoints=2, fontsize=11)
+    # Save plot to file.
+    save_plot(f_name, 'intens_histo', fig, round(mag_range[1], 1),
+              area_frac_range, '')
 
 
 def star_size(mag_data):
@@ -110,8 +150,8 @@ def dens_map(x_data, y_data, new_cent_rad):
     return h_g, dens_cent_rad
 
 
-def vor_plot(f_name, m_rang, a_f, m_n, x, y, mag, x_mr, y_mr, pts_thres,
-             neighbors_plot, cent_rad, new_cent_rad, vor):
+def vor_plot(f_name, m_rang, area_frac_range, m_n, x, y, mag, x_mr, y_mr,
+             pts_thres, neighbors_plot, old_cent_rad, new_cent_rad, vor):
     # figure size.
     # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 40))
     fig = plt.figure(figsize=(40, 20))
@@ -160,7 +200,7 @@ def vor_plot(f_name, m_rang, a_f, m_n, x, y, mag, x_mr, y_mr, pts_thres,
     leg.get_frame().set_alpha(0.85)
 
     # Print radii for merged groups.
-    for c_r in cent_rad:
+    for c_r in old_cent_rad:
         circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='b', ls='dashed',
                             fill=False, lw=1.2)
         fig.gca().add_artist(circle)
@@ -270,4 +310,4 @@ def vor_plot(f_name, m_rang, a_f, m_n, x, y, mag, x_mr, y_mr, pts_thres,
     ax4.add_artist(ob)
 
     # Save plot to file.
-    save_plot(f_name, 'voronoi', fig, m_rang, a_f, m_n)
+    save_plot(f_name, 'voronoi', fig, m_rang, area_frac_range, m_n)

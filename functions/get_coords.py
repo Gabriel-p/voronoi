@@ -21,10 +21,11 @@ def get_coords(in_file, mag_range):
             zip(*file_data)[3]
 
     # Filter stars outside of magnitude range
-    x_mr, y_mr = [], []
+    x_mr, y_mr, mag_mr = [], [], []
     for i, m in enumerate(mag):
         if mag_range[0] <= m < mag_range[1]:
             x_mr.append(x[i])
             y_mr.append(y[i])
+            mag_mr.append(m)
 
-    return x_mr, y_mr, x, y, mag
+    return x_mr, y_mr, mag_mr, x, y, mag

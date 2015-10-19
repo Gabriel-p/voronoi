@@ -6,9 +6,10 @@ import numpy as np
 from functions.get_params_in import get_params_in
 from functions.get_coords import get_coords
 from functions.get_cent_rad import get_cent_rad
-from functions.group_overdens import merge_overdens
+# from functions.group_overdens import merge_overdens
+from functions.integ_mag import filt_integ_mag
 from functions.save_to_file import save_cent_rad, save_to_log
-from functions.make_plots import area_hist, vor_plot
+from functions.make_plots import area_hist, intens_hist, vor_plot
 
 
 def print_perc(i, tot_sols, milestones):
@@ -37,7 +38,7 @@ def area_of_polygon(points):
     return abs(area) / 2.0
 
 
-def get_vor_data(points, vor):
+def get_vor_data(points, mag_mr, vor):
     '''
     Obtain from Voronoi diagram:
     - acp_pts (points whose diagram/cell/polygon contains no negative indexes)
@@ -49,7 +50,7 @@ def get_vor_data(points, vor):
     tot_sols = len(vor.regions)
     milestones = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
 
-    acp_pts, rej_pts, pts_area, pts_vert = [], [], [], []
+    acp_pts, acp_mags, rej_pts, pts_area, pts_vert = [], [], [], [], []
     for i, reg in enumerate(vor.regions):
         # If region is not empty.
         if reg:
@@ -61,6 +62,7 @@ def get_vor_data(points, vor):
             if all([_ >= 0 for _ in reg]):
                 # Store point coordinates.
                 acp_pts.append(points[p_idx])
+                acp_mags.append(mag_mr[p_idx])
 
                 # Store coordinates for all vertices.
                 pts = []
@@ -80,10 +82,11 @@ def get_vor_data(points, vor):
         # Print percentage done.
         milestones = print_perc(i, tot_sols, milestones)
 
-    return acp_pts, rej_pts, pts_area, pts_vert
+    return acp_pts, acp_mags, rej_pts, pts_area, pts_vert
 
 
-def area_filter(acp_pts, pts_area, pts_vert, most_prob_a, a_f):
+def area_filter(acp_pts, acp_mags, pts_area, pts_vert, most_prob_a,
+                area_frac_range):
     '''
     Filter *out* those points whose area is *above* a certain fraction of the
     most probable area value passed.
@@ -91,14 +94,16 @@ def area_filter(acp_pts, pts_area, pts_vert, most_prob_a, a_f):
     http://stackoverflow.com/a/32058576/1391441
     '''
 
-    pts_thres, vert_thres = [], []
+    pts_thres, mag_thres, vert_thres = [], [], []
     for i, p in enumerate(acp_pts):
         # Keep point if its area is below the maximum threshold.
-        if most_prob_a * 0.45 < pts_area[i] < most_prob_a * a_f:
+        if most_prob_a * area_frac_range[0] < pts_area[i] < \
+                most_prob_a * area_frac_range[1]:
             pts_thres.append(p)
+            mag_thres.append(acp_mags[i])
             vert_thres.append(pts_vert[i])
 
-    return pts_thres, vert_thres
+    return pts_thres, mag_thres, vert_thres
 
 
 def consolidate(sets):
@@ -201,7 +206,7 @@ def neighbors_filter(neighbors, min_neighbors):
 
 def main():
     # Read parameters from input file.
-    in_file, mag_range, avr_area_frac, m_n = get_params_in()
+    in_file, mag_range, area_frac_range, m_n, intens_frac = get_params_in()
 
     # Each sub-list in 'in_file' is a row of the file.
     f_name = in_file[:-4]
@@ -212,7 +217,7 @@ def main():
     text = ''
 
     # Get points coordinates.
-    x_mr, y_mr, x, y, mag = get_coords(in_file, mag_range)
+    x_mr, y_mr, mag_mr, x, y, mag = get_coords(in_file, mag_range)
     text += 'Photometric data obtained\n'
     text1 = 'Total stars: {}\n'.format(len(x))
     text2 = 'Stars filtered by {} <= mag < {}: {arg3}\n'.format(
@@ -227,7 +232,8 @@ def main():
 
     # Get data on Voronoi diagram.
     print '\nProcessing Voronoi diagram'
-    acp_pts, rej_pts, pts_area, pts_vert = get_vor_data(points, vor)
+    acp_pts, acp_mags, rej_pts, pts_area, pts_vert = get_vor_data(points,
+                                                                  mag_mr, vor)
 
     # Obtain average area *using filtered stars*.
     avr_area = ((max(x_mr) - min(x_mr)) * (max(y_mr) - min(y_mr))) / len(x_mr)
@@ -242,95 +248,68 @@ def main():
     text += ("\nMost probable area for Voronoi cells (stars filtered by "
              "magnitude): {:.2f}\n".format(most_prob_a))
 
-    # Smaller values imply faster processing since more stars are filtered out.
-    for a_f in avr_area_frac:
+    # Generate area histogram plot.
+    area_hist(f_name, mag_range, area_frac_range, pts_area_filt, avr_area)
 
-        # Generate area histogram plot.
-        area_hist(f_name, mag_range, a_f, pts_area_filt, avr_area)
+    # Apply maximum area filter.
+    pts_thres, mag_thres, vert_thres = area_filter(
+        acp_pts, acp_mags, pts_area, pts_vert, most_prob_a, area_frac_range)
+    text1 = ("\n* Stars between area range ({:.2f}, {:.2f}): "
+             "{a3}\n".format(*area_frac_range, a3=len(pts_thres)))
+    print text1
+    text += text1
 
-        # Apply maximum area filter.
-        pts_thres, vert_thres = area_filter(acp_pts, pts_area, pts_vert,
-                                            most_prob_a, a_f)
-        text1 = ("\n* Stars below ({:.2f} * most_prob_area) threshold: "
-                 "{}\n".format(a_f, len(pts_thres)))
+    print 'Detect shared vertex'
+    all_groups = shared_vertex(vert_thres)
+
+    # This is a costly process.
+    print '\nAssign points to groups'
+    neighbors = group_stars(pts_thres, vert_thres, all_groups)
+
+    # Keep only those groups with a higher number of members than
+    # min_neighbors.
+    print '\nDiscard groups with total number of members below the limit.'
+    pts_neighbors = neighbors_filter(neighbors, m_n)
+
+    # Check if at least one group was defined with the minimum
+    # required number of neighbors.
+    if len(pts_neighbors) > 0:
+
+        # Obtain center and radius for each overdensity identified.
+        text1 = "\nGroups with more than {} members: {}".format(
+            m_n, len(pts_neighbors))
+        print text1
+        text += text1
+        cent_rad = get_cent_rad(pts_neighbors)
+        # old_cent_rad, new_cent_rad = cent_rad, []
+
+        old_cent_rad, new_cent_rad, intens_area_all = filt_integ_mag(
+            pts_thres, mag_thres, cent_rad, intens_frac)
+
+        # Generate intensities per area unit histogram plot.
+        intens_hist(f_name, mag_range, area_frac_range, intens_area_all,
+                    intens_frac)
+
+        # old_cent_rad, new_cent_rad = merge_overdens(cent_rad)
+        # text += ('\n{} groups were merged'.format(len(cent_rad) -
+        #                                           len(new_cent_rad)))
+
+        text1 = '\n{} groups discarded/merged.'.format(len(old_cent_rad))
         print text1
         text += text1
 
-        ###################################################################
-        # # Compute clustering with MeanShift
-        # from itertools import cycle
-        # from sklearn.cluster import MeanShift, estimate_bandwidth
-        # import matplotlib.pyplot as plt
-
-        # X = np.array([list(_) for _ in pts_thres])
-        # # The following bandwidth can be automatically detected using
-        # bandwidth = estimate_bandwidth(X, quantile=0.2, n_samples=500)
-        # bandwidth = 50.
-
-        # ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
-        # ms.fit(X)
-        # labels = ms.labels_
-        # cluster_centers = ms.cluster_centers_
-
-        # labels_unique = np.unique(labels)
-        # n_clusters_ = len(labels_unique)
-
-        # print("number of estimated clusters : %d" % n_clusters_)
-
-        # # Plot result
-        # plt.figure(1)
-        # plt.clf()
-
-        # colors = cycle('bgrcmykbgrcmykbgrcmykbgrcmyk')
-        # for k, col in zip(range(n_clusters_), colors):
-        #     my_members = labels == k
-        #     cluster_center = cluster_centers[k]
-        #     plt.plot(X[my_members, 0], X[my_members, 1], col + '.')
-        #     plt.plot(cluster_center[0], cluster_center[1], 'o',
-        #              markerfacecolor=col,
-        #              markeredgecolor='k', markersize=5)
-        # plt.show()
-        # raw_input()
-        ###################################################################
-
-        print 'Detect shared vertex'
-        all_groups = shared_vertex(vert_thres)
-
-        # This is a costly process.
-        print '\nAssign points to groups'
-        neighbors = group_stars(pts_thres, vert_thres, all_groups)
-
-        # Keep only those groups with a higher number of members than
-        # min_neighbors.
-        print '\nDiscard groups with total number of members below the limit.'
-        pts_neighbors = neighbors_filter(neighbors, m_n)
-
-        # Check if at least one group was defined with the minimum
-        # required number of neighbors.
-        if len(pts_neighbors) > 0:
-
-            # Obtain center and radius for each overdensity identified.
-            text1 = "\nGroups with more than {} members: {}\n".format(
-                m_n, len(pts_neighbors))
-            print text1
-            text += text1
-            cent_rad = get_cent_rad(pts_neighbors)
-            new_cent_rad, old_cent_rad = cent_rad, []
-
-            # old_cent_rad, new_cent_rad = merge_overdens(cent_rad)
-            # text += ('\n{} groups were merged'.format(len(cent_rad) -
-            #                                           len(new_cent_rad)))
-            # Write data to file.
-            save_cent_rad(f_name, mag_range[1], a_f, m_n, new_cent_rad,
-                          old_cent_rad)
-            # Plot diagram.
-            print '\nPlotting.'
-            vor_plot(f_name, mag_range[1], a_f, m_n, x, y, mag, x_mr, y_mr,
-                     pts_thres, pts_neighbors, old_cent_rad, new_cent_rad, vor)
-        else:
-            text1 = "\nNo groups with more than {} members found.".format(m_n)
-            print text1
-            text += text1
+        # Write data to file.
+        save_cent_rad(f_name, mag_range[1], area_frac_range, m_n, new_cent_rad,
+                      old_cent_rad)
+        # Plot diagram.
+        print '\nPlotting.'
+        vor_plot(f_name, mag_range[1], area_frac_range, m_n, x, y, mag, x_mr,
+                 y_mr, pts_thres, pts_neighbors, old_cent_rad, new_cent_rad,
+                 vor)
+    else:
+        text1 = "\nNo groups with more than {} members found.".format(m_n)
+        print text1
+        text += text1
 
     # Store info in log file.
     save_to_log(f_name, text, mag_range[1], 1)
