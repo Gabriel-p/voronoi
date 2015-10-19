@@ -94,7 +94,7 @@ def area_filter(acp_pts, pts_area, pts_vert, most_prob_a, a_f):
     pts_thres, vert_thres = [], []
     for i, p in enumerate(acp_pts):
         # Keep point if its area is below the maximum threshold.
-        if pts_area[i] < most_prob_a * a_f:
+        if most_prob_a * 0.45 < pts_area[i] < most_prob_a * a_f:
             pts_thres.append(p)
             vert_thres.append(pts_vert[i])
 
@@ -256,6 +256,43 @@ def main():
         print text1
         text += text1
 
+        ###################################################################
+        # # Compute clustering with MeanShift
+        # from itertools import cycle
+        # from sklearn.cluster import MeanShift, estimate_bandwidth
+        # import matplotlib.pyplot as plt
+
+        # X = np.array([list(_) for _ in pts_thres])
+        # # The following bandwidth can be automatically detected using
+        # bandwidth = estimate_bandwidth(X, quantile=0.2, n_samples=500)
+        # bandwidth = 50.
+
+        # ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
+        # ms.fit(X)
+        # labels = ms.labels_
+        # cluster_centers = ms.cluster_centers_
+
+        # labels_unique = np.unique(labels)
+        # n_clusters_ = len(labels_unique)
+
+        # print("number of estimated clusters : %d" % n_clusters_)
+
+        # # Plot result
+        # plt.figure(1)
+        # plt.clf()
+
+        # colors = cycle('bgrcmykbgrcmykbgrcmykbgrcmyk')
+        # for k, col in zip(range(n_clusters_), colors):
+        #     my_members = labels == k
+        #     cluster_center = cluster_centers[k]
+        #     plt.plot(X[my_members, 0], X[my_members, 1], col + '.')
+        #     plt.plot(cluster_center[0], cluster_center[1], 'o',
+        #              markerfacecolor=col,
+        #              markeredgecolor='k', markersize=5)
+        # plt.show()
+        # raw_input()
+        ###################################################################
+
         print 'Detect shared vertex'
         all_groups = shared_vertex(vert_thres)
 
@@ -278,10 +315,11 @@ def main():
             print text1
             text += text1
             cent_rad = get_cent_rad(pts_neighbors)
+            new_cent_rad, old_cent_rad = cent_rad, []
 
-            old_cent_rad, new_cent_rad = merge_overdens(cent_rad)
-            text += ('\n{} groups were merged'.format(len(cent_rad) -
-                                                      len(new_cent_rad)))
+            # old_cent_rad, new_cent_rad = merge_overdens(cent_rad)
+            # text += ('\n{} groups were merged'.format(len(cent_rad) -
+            #                                           len(new_cent_rad)))
             # Write data to file.
             save_cent_rad(f_name, mag_range[1], a_f, m_n, new_cent_rad,
                           old_cent_rad)
