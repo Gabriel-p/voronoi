@@ -2,33 +2,28 @@
 
 # Voronoi overdensity detection algorithm parameters.
 
-
 # Name of input file.
 #
 FN random.dat
 
-# Magnitude range. Range is defined as: [min_mag, max_mag), i.e.: the maximum
-# magnitude value is excluded.
-#
-#  min_mag   max_mag
-#
-MR      19        20
+# Ranges are defined as: [min_mag, max_mag), i.e. the maximum value is excluded.
 
-# Separate values with spaces, don't use commas.
-# For a list of values or a single value, enclose in (), [] or {}.
-# For a range of values write: min  max  step (no commas)
+# Magnitude range.
+#
+#    min   max
+#
+MR     1   17.5
 
-# Maximum area as a fraction of average area.
-# Must be a list of floats larger than 0 enclosed between parenthesis, e.g.:
+# Area range (fraction of most probable Voronoi polygon area).
 #
-# (0.5 0.75 0.8)
+#    min   max
 #
-# or a range composed of a minimum, maximum and step value, e.g.:
-#
-# 0.5 0.91 0.1.
-#
-MA (0.75)
+MA   0.75    1.
 
-# Minimum neighbors. Must be a single integer.
+# Minimum number neighbors (single integer).
 #
-MN  10
+MN  5
+
+# Fraction of frame's intensity per area unit.
+#
+FI  7.

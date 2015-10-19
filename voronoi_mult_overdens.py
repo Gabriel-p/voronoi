@@ -282,6 +282,7 @@ def main():
         text += text1
         cent_rad = get_cent_rad(pts_neighbors)
         # old_cent_rad, new_cent_rad = cent_rad, []
+        # old_cent_rad, new_cent_rad = merge_overdens(cent_rad)
 
         old_cent_rad, new_cent_rad, intens_area_all = filt_integ_mag(
             pts_thres, mag_thres, cent_rad, intens_frac)
@@ -289,10 +290,6 @@ def main():
         # Generate intensities per area unit histogram plot.
         intens_hist(f_name, mag_range, area_frac_range, intens_area_all,
                     intens_frac)
-
-        # old_cent_rad, new_cent_rad = merge_overdens(cent_rad)
-        # text += ('\n{} groups were merged'.format(len(cent_rad) -
-        #                                           len(new_cent_rad)))
 
         text1 = '\n{} groups discarded/merged.'.format(len(old_cent_rad))
         print text1

@@ -10,11 +10,10 @@ def save_cent_rad(f_name, m_rang, area_frac_range, m_n, new_cent_rad,
     data_out = 'out_fig_dat/' + f_name + '_' + str(round(m_rang, 1)) + '_' +\
         str(a_f_min) + '_' + str(a_f_max) + '_' + str(m_n) + '.out'
     with open(data_out, 'w') as f:
-        f.write("#area_frac_min   area_frac_min   min_neigh    cent_x    "
-                "cent_y    rad\n")
+        f.write("#a_f_min    a_f_max  min_n    cent_x    cent_y     rad\n")
     with open(data_out, 'a') as f:
         for i, l in enumerate(new_cent_rad):
-            f.write("{:.3f}{:.3f}{:>11.0f}{:>16.4f}{:>10.4f}{:>10.4f}\n".
+            f.write("{:8.2f}{:8.2f}{:>6.0f}{:>16.4f}{:>10.4f}{:>10.4f}\n".
                     format(a_f_min, a_f_max, m_n, *l))
 
     if old_cent_rad:
@@ -22,7 +21,7 @@ def save_cent_rad(f_name, m_rang, area_frac_range, m_n, new_cent_rad,
             f.write("#REJECTED GROUPS BELOW.\n")
         with open(data_out, 'a') as f:
             for i, l in enumerate(old_cent_rad):
-                f.write("{:.3f}{:.3f}{:>11.0f}{:>16.4f}{:>10.4f}{:>10.4f}\n".
+                f.write("{:8.2f}{:8.2f}{:>6.0f}{:>16.4f}{:>10.4f}{:>10.4f}\n".
                         format(a_f_min, a_f_max, m_n, *l))
 
 
