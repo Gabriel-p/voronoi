@@ -9,7 +9,8 @@ from functions.get_cent_rad import get_cent_rad
 # from functions.group_overdens import merge_overdens
 from functions.integ_mag import filt_integ_mag
 from functions.save_to_file import save_cent_rad, save_to_log
-from functions.make_plots import area_hist, intens_hist, vor_plot
+from functions.make_plots import area_hist, intens_hist, intens_vs_rad, \
+    vor_plot
 
 
 def print_perc(i, tot_sols, milestones):
@@ -287,22 +288,27 @@ def main():
         old_cent_rad, new_cent_rad, intens_area_all = filt_integ_mag(
             pts_thres, mag_thres, cent_rad, intens_frac)
 
-        # Generate intensities per area unit histogram plot.
-        intens_hist(f_name, mag_range, area_frac_range, intens_area_all,
-                    intens_frac)
-
         text1 = '\n{} groups discarded/merged.'.format(len(old_cent_rad))
         print text1
         text += text1
 
-        # Write data to file.
-        save_cent_rad(f_name, mag_range[1], area_frac_range, m_n, new_cent_rad,
-                      old_cent_rad)
-        # Plot diagram.
         print '\nPlotting.'
+
+        # Intensities per area unit histogram plot.
+        intens_hist(f_name, mag_range, area_frac_range, intens_area_all,
+                    intens_frac)
+        # Intensities vs radius plot.
+        intens_vs_rad(f_name, mag_range, area_frac_range, intens_area_all,
+                      intens_frac)
+        # Plot main diagram.
         vor_plot(f_name, mag_range[1], area_frac_range, m_n, x, y, mag, x_mr,
                  y_mr, pts_thres, pts_neighbors, old_cent_rad, new_cent_rad,
                  vor)
+
+        # Write data to file.
+        save_cent_rad(f_name, mag_range[1], area_frac_range, m_n, new_cent_rad,
+                      old_cent_rad)
+
     else:
         text1 = "\nNo groups with more than {} members found.".format(m_n)
         print text1

@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.offsetbox as offsetbox
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.ndimage.filters import gaussian_filter
 import bisect
 # from scipy.spatial import voronoi_plot_2d
@@ -89,14 +90,15 @@ def intens_hist(f_name, mag_range, area_frac_range, intens_area_all,
     plt.ylabel("Normalized distribution", fontsize=12)
 
     # Vertical lines.
-    max_val = max(intens_area_all)
-    plt.axvline(x=intens_area_all[0], color='k', ls='--', lw=2,
+    intens_area = intens_area_all[0][0] + intens_area_all[1][0]
+    max_val = max(intens_area)
+    plt.axvline(x=1., color='k', ls='--', lw=2,
                 label="(Frame's intensity) / (area unit) = 1.")
-    plt.axvline(x=intens_frac * intens_area_all[0], color='r', ls='--', lw=2,
+    plt.axvline(x=intens_frac, color='r', ls='--', lw=2,
                 label='Minimum accepted intensity')
     # Normalized histogram.
-    weights = np.ones_like(intens_area_all)/len(intens_area_all)
-    plt.hist(intens_area_all, color='#C6D8E5', bins=50, range=[0., max_val],
+    weights = np.ones_like(intens_area)/len(intens_area)
+    plt.hist(intens_area, color='#C6D8E5', bins=50, range=[0., max_val],
              weights=weights, normed=True)
     # Add text box.
     text = '{} <= mag < {}'.format(*mag_range)
@@ -109,6 +111,67 @@ def intens_hist(f_name, mag_range, area_frac_range, intens_area_all,
     ax1.legend(handles, labels, loc='upper right', numpoints=2, fontsize=11)
     # Save plot to file.
     save_plot(f_name, 'intens_histo', fig, round(mag_range[1], 1),
+              area_frac_range, '')
+
+
+def intens_vs_rad(f_name, mag_range, area_frac_range, intens_area_all,
+                  intens_frac):
+    '''
+    '''
+    fig = plt.figure(figsize=(10, 10))
+    ax1 = plt.subplot(111)
+    # Accepted clusters.
+    x_a, z_a, y_a = intens_area_all[0][1], intens_area_all[0][0], \
+        intens_area_all[0][2]
+
+    # Order lists to put min rad values on top.
+    ord_za, ord_xa, ord_ya = map(list, zip(*sorted(zip(z_a, x_a, y_a),
+                                 reverse=False)))
+
+    # Rejected clusters.
+    x_r, z_r, y_r = intens_area_all[1][1], intens_area_all[1][0],  \
+        intens_area_all[1][2]
+    max_x = max(max(x_a), max(x_r))
+    max_y = max(max(y_a), max(y_r))
+    plt.xlim(-1, max_x + max_x * 0.1)
+    plt.ylim(-1, max_y + max_y * 0.1)
+    plt.xlabel("Radius", fontsize=12)
+    plt.ylabel("N stars", fontsize=12)
+    # Set minor ticks
+    plt.minorticks_on()
+    # Set grid
+    plt.grid(b=True, which='major', color='gray', linestyle='-', zorder=1)
+    plt.grid(b=True, which='minor', color='gray', linestyle='-', zorder=1)
+    cm = plt.cm.get_cmap('RdYlBu_r')
+    v_min, v_max = 0, max(z_a + z_r)
+    plt.scatter(x_r, y_r, c=z_r, marker='s', lw=0.2, s=35, cmap=cm, vmin=v_min,
+                vmax=v_max,
+                label='Rejected overdensities ({})'.format(len(x_r)),
+                zorder=3)
+    SC = plt.scatter(ord_xa, ord_ya, c=ord_za, marker='o', lw=0.2, s=50,
+                     cmap=cm, vmin=v_min, vmax=v_max,
+                     label='Accepted overdensities ({})'.format(len(x_a)),
+                     zorder=4)
+    # Add text box.
+    text = 'Intensity / (unit area) threshold: {}'.format(intens_frac)
+    ob = offsetbox.AnchoredText(text, pad=0.5, loc=6, prop=dict(size=12))
+    ob.patch.set(alpha=0.5)
+    ax1.add_artist(ob)
+    # Legend.
+    leg = plt.legend(fancybox=True, loc='upper left', scatterpoints=1,
+                     fontsize=10, markerscale=1.2)
+    # Set the alpha value of the legend.
+    leg.get_frame().set_alpha(0.85)
+
+    # Position colorbar.
+    the_divider = make_axes_locatable(ax1)
+    color_axis = the_divider.append_axes("right", size="2%", pad=0.1)
+    # Colorbar.
+    cbar = plt.colorbar(SC, cax=color_axis)
+    cbar.set_label("Intensity / (unit area)", fontsize=12, labelpad=5)
+
+    # Save plot to file.
+    save_plot(f_name, 'intens_rad', fig, round(mag_range[1], 1),
               area_frac_range, '')
 
 
