@@ -286,7 +286,7 @@ def main():
         # old_cent_rad, new_cent_rad = merge_overdens(cent_rad)
 
         old_cent_rad, new_cent_rad, intens_area_all = filt_integ_mag(
-            pts_thres, mag_thres, cent_rad, intens_frac)
+            x_mr, y_mr, pts_thres, mag_thres, cent_rad, intens_frac)
 
         text1 = '\n{} groups discarded/merged.'.format(len(old_cent_rad))
         print text1

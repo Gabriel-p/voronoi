@@ -21,7 +21,7 @@ def calc_integ_mag(mags):
     return int_mag_val
 
 
-def filt_integ_mag(pts_thres, mag_thres, cent_rad, intens_frac):
+def filt_integ_mag(x_mr, y_mr, pts_thres, mag_thres, cent_rad, intens_frac):
     '''
     Apply integrated magnitude filter.
     '''
@@ -39,6 +39,14 @@ def filt_integ_mag(pts_thres, mag_thres, cent_rad, intens_frac):
     # Obtain integrated magnitude for each defined circle.
     old_cent_rad, new_cent_rad, clust_intens_area = [], [], []
     for c_x, c_y, r in cent_rad:
+        # Count stars within this circle, using stars that passed the
+        # magnitude filter.
+        N = 0
+        for x, y in zip(*[x_mr, y_mr]):
+            d = np.sqrt((c_x - x) ** 2 + (c_y - y) ** 2)
+            if d <= r:
+                N += 1
+
         # Group stars within this circle.
         clust_mags = []
         for i, (x, y) in enumerate(pts_thres):
@@ -50,15 +58,17 @@ def filt_integ_mag(pts_thres, mag_thres, cent_rad, intens_frac):
         clust_intens = 10 ** (0.4 * (frame_int_mag - clust_int_mag))
         clust_intens_area = (clust_intens * frame_area) / clust_area
 
+        # If the overdensity has an intensity per unit area (I/A) larger than a
+        # given fraction of the frame's I/A, keep (j=0). Else, discard (j=1).
         if clust_intens_area > intens_frac * frame_intens_area:
             new_cent_rad.append([c_x, c_y, r])
-            intens_area_all[0][0].append(clust_intens_area)
-            intens_area_all[0][1].append(r)
-            intens_area_all[0][2].append(len(clust_mags))
+            j = 0
         else:
             old_cent_rad.append([c_x, c_y, r])
-            intens_area_all[1][0].append(clust_intens_area)
-            intens_area_all[1][1].append(r)
-            intens_area_all[1][2].append(len(clust_mags))
+            j = 1
+        # Store intensity/area for plotting.
+        intens_area_all[j][0].append(clust_intens_area)
+        intens_area_all[j][1].append(r)
+        intens_area_all[j][2].append(N)
 
     return old_cent_rad, new_cent_rad, intens_area_all

@@ -95,7 +95,7 @@ def intens_hist(f_name, mag_range, area_frac_range, intens_area_all,
     plt.axvline(x=1., color='k', ls='--', lw=2,
                 label="(Frame's intensity) / (area unit) = 1.")
     plt.axvline(x=intens_frac, color='r', ls='--', lw=2,
-                label='Minimum accepted intensity')
+                label='Minimum intensity / (unit area)')
     # Normalized histogram.
     weights = np.ones_like(intens_area)/len(intens_area)
     plt.hist(intens_area, color='#C6D8E5', bins=50, range=[0., max_val],
@@ -153,13 +153,13 @@ def intens_vs_rad(f_name, mag_range, area_frac_range, intens_area_all,
                      label='Accepted overdensities ({})'.format(len(x_a)),
                      zorder=4)
     # Add text box.
-    text = 'Intensity / (unit area) threshold: {}'.format(intens_frac)
-    ob = offsetbox.AnchoredText(text, pad=0.5, loc=6, prop=dict(size=12))
+    text = 'Minimum intensity / (unit area): {}'.format(intens_frac)
+    ob = offsetbox.AnchoredText(text, pad=0.5, loc=6, prop=dict(size=10))
     ob.patch.set(alpha=0.5)
     ax1.add_artist(ob)
     # Legend.
     leg = plt.legend(fancybox=True, loc='upper left', scatterpoints=1,
-                     fontsize=10, markerscale=1.2)
+                     fontsize=10, markerscale=1.)
     # Set the alpha value of the legend.
     leg.get_frame().set_alpha(0.85)
 
