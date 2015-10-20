@@ -286,6 +286,7 @@ def main():
         # old_cent_rad, new_cent_rad = cent_rad, []
         # old_cent_rad, new_cent_rad = merge_overdens(cent_rad)
 
+        print "\nFilter groups by intensity/area."
         old_cent_rad, new_cent_rad, intens_area_all = filt_integ_mag(
             x_mr, y_mr, pts_thres, mag_thres, cent_rad, intens_frac)
 
