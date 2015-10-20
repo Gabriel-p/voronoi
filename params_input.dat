@@ -6,6 +6,13 @@
 #
 FN random.dat
 
+# Data columns for compare file.
+#
+#   x   y  mag
+#
+FD  1   2    3
+
+
 # Ranges are defined as: [min_mag, max_mag), i.e. the maximum value is excluded.
 
 # Magnitude range.
@@ -18,12 +25,12 @@ MR     1   17.5
 #
 #    min   max
 #
-MA   0.75    1.
+MA   0.45    1.
 
-# Minimum number neighbors (single integer).
+# Minimum number of neighbors (single integer).
 #
 MN  5
 
 # Fraction of frame's intensity per area unit.
 #
-FI  7.
+FI  5.
