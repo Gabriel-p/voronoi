@@ -80,15 +80,14 @@ def area_hist(f_name, mag_range, area_frac_range, pts_area_filt, avr_area):
               area_frac_range, '')
 
 
-def intens_hist(f_name, mag_range, area_frac_range, intens_area_all,
-                intens_frac):
+def intensity_plot(f_name, mag_range, area_frac_range, intens_area_all,
+                   intens_frac):
     '''
     '''
-    fig = plt.figure(figsize=(10, 10))
-    ax1 = plt.subplot(111)
+    fig = plt.figure(figsize=(20, 10))
+    ax1 = plt.subplot(121)
     plt.xlabel("Intensity / (unit area)", fontsize=12)
     plt.ylabel("Normalized distribution", fontsize=12)
-
     # Vertical lines.
     intens_area = intens_area_all[0][0] + intens_area_all[1][0]
     max_val = max(intens_area)
@@ -109,17 +108,8 @@ def intens_hist(f_name, mag_range, area_frac_range, intens_area_all,
     handles, labels = ax1.get_legend_handles_labels()
     # use them in the legend
     ax1.legend(handles, labels, loc='upper right', numpoints=2, fontsize=11)
-    # Save plot to file.
-    save_plot(f_name, 'intens_histo', fig, round(mag_range[1], 1),
-              area_frac_range, '')
 
-
-def intens_vs_rad(f_name, mag_range, area_frac_range, intens_area_all,
-                  intens_frac):
-    '''
-    '''
-    fig = plt.figure(figsize=(10, 10))
-    ax1 = plt.subplot(111)
+    ax2 = plt.subplot(122)
     # Accepted clusters.
     x_a, z_a, y_a = intens_area_all[0][1], intens_area_all[0][0], \
         intens_area_all[0][2]
@@ -127,7 +117,6 @@ def intens_vs_rad(f_name, mag_range, area_frac_range, intens_area_all,
     # Order lists to put min rad values on top.
     ord_za, ord_xa, ord_ya = map(list, zip(*sorted(zip(z_a, x_a, y_a),
                                  reverse=False)))
-
     # Rejected clusters.
     x_r, z_r, y_r = intens_area_all[1][1], intens_area_all[1][0],  \
         intens_area_all[1][2]
@@ -156,7 +145,7 @@ def intens_vs_rad(f_name, mag_range, area_frac_range, intens_area_all,
     text = 'Minimum intensity / (unit area): {}'.format(intens_frac)
     ob = offsetbox.AnchoredText(text, pad=0.5, loc=6, prop=dict(size=10))
     ob.patch.set(alpha=0.5)
-    ax1.add_artist(ob)
+    ax2.add_artist(ob)
     # Legend.
     leg = plt.legend(fancybox=True, loc='upper left', scatterpoints=1,
                      fontsize=10, markerscale=1.)
@@ -164,14 +153,14 @@ def intens_vs_rad(f_name, mag_range, area_frac_range, intens_area_all,
     leg.get_frame().set_alpha(0.85)
 
     # Position colorbar.
-    the_divider = make_axes_locatable(ax1)
+    the_divider = make_axes_locatable(ax2)
     color_axis = the_divider.append_axes("right", size="2%", pad=0.1)
     # Colorbar.
     cbar = plt.colorbar(SC, cax=color_axis)
     cbar.set_label("Intensity / (unit area)", fontsize=12, labelpad=5)
 
     # Save plot to file.
-    save_plot(f_name, 'intens_rad', fig, round(mag_range[1], 1),
+    save_plot(f_name, 'intensity', fig, round(mag_range[1], 1),
               area_frac_range, '')
 
 

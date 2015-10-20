@@ -2,7 +2,7 @@
 import numpy as np
 
 
-def get_coords(in_file, mag_range):
+def get_coords(in_file, in_file_cols, mag_range):
     '''
     Return coordinates from file.
     '''
@@ -15,10 +15,11 @@ def get_coords(in_file, mag_range):
     else:
         # Each sub-list in 'in_file' is a row of the file.
         file_data = np.loadtxt(in_file)
+        i, j, k = in_file_cols
 
         # Extract coordinates and zip them into lists.
-        x, y, mag = zip(*file_data)[1], zip(*file_data)[2], \
-            zip(*file_data)[3]
+        x, y, mag = zip(*file_data)[i], zip(*file_data)[j], \
+            zip(*file_data)[k]
 
     # Filter stars outside of magnitude range
     x_mr, y_mr, mag_mr = [], [], []

@@ -9,8 +9,7 @@ from functions.get_cent_rad import get_cent_rad
 # from functions.group_overdens import merge_overdens
 from functions.integ_mag import filt_integ_mag
 from functions.save_to_file import save_cent_rad, save_to_log
-from functions.make_plots import area_hist, intens_hist, intens_vs_rad, \
-    vor_plot
+from functions.make_plots import area_hist, intensity_plot, vor_plot
 
 
 def print_perc(i, tot_sols, milestones):
@@ -207,7 +206,8 @@ def neighbors_filter(neighbors, min_neighbors):
 
 def main():
     # Read parameters from input file.
-    in_file, mag_range, area_frac_range, m_n, intens_frac = get_params_in()
+    in_file, in_file_cols, mag_range, area_frac_range, m_n, intens_frac =\
+        get_params_in()
 
     # Each sub-list in 'in_file' is a row of the file.
     f_name = in_file[:-4]
@@ -218,7 +218,8 @@ def main():
     text = ''
 
     # Get points coordinates.
-    x_mr, y_mr, mag_mr, x, y, mag = get_coords(in_file, mag_range)
+    x_mr, y_mr, mag_mr, x, y, mag = get_coords(in_file, in_file_cols,
+                                               mag_range)
     text += 'Photometric data obtained\n'
     text1 = 'Total stars: {}\n'.format(len(x))
     text2 = 'Stars filtered by {} <= mag < {}: {arg3}\n'.format(
@@ -294,12 +295,9 @@ def main():
 
         print '\nPlotting.'
 
-        # Intensities per area unit histogram plot.
-        intens_hist(f_name, mag_range, area_frac_range, intens_area_all,
-                    intens_frac)
-        # Intensities vs radius plot.
-        intens_vs_rad(f_name, mag_range, area_frac_range, intens_area_all,
-                      intens_frac)
+        # Intensities plots.
+        intensity_plot(f_name, mag_range, area_frac_range, intens_area_all,
+                       intens_frac)
         # Plot main diagram.
         vor_plot(f_name, mag_range[1], area_frac_range, m_n, x, y, mag, x_mr,
                  y_mr, pts_thres, pts_neighbors, old_cent_rad, new_cent_rad,
