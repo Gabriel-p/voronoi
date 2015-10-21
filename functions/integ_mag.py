@@ -35,6 +35,7 @@ def filt_integ_mag(x_mr, y_mr, pts_thres, mag_thres, cent_rad, intens_frac):
     frame_int_mag = calc_integ_mag(mag_thres)
     frame_area = (max(x_thr) - min(x_thr)) * (max(y_thr) - min(y_thr))
     frame_intens_area = 1.
+    print frame_int_mag
 
     # Obtain integrated magnitude for each defined circle.
     old_cent_rad, new_cent_rad, clust_intens_area = [], [], []
@@ -57,6 +58,8 @@ def filt_integ_mag(x_mr, y_mr, pts_thres, mag_thres, cent_rad, intens_frac):
         clust_area = np.pi * (r ** 2)
         clust_intens = 10 ** (0.4 * (frame_int_mag - clust_int_mag))
         clust_intens_area = (clust_intens * frame_area) / clust_area
+
+        print clust_area, clust_area / N, clust_int_mag, clust_intens_area
 
         # If the overdensity has an intensity per unit area (I/A) larger than a
         # given fraction of the frame's I/A, keep (j=0). Else, discard (j=1).

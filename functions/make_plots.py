@@ -113,16 +113,19 @@ def intensity_plot(f_name, mag_range, area_frac_range, intens_area_all,
     # Accepted clusters.
     x_a, z_a, y_a = intens_area_all[0][1], intens_area_all[0][0], \
         intens_area_all[0][2]
-
     # Order lists to put min rad values on top.
     ord_za, ord_xa, ord_ya = map(list, zip(*sorted(zip(z_a, x_a, y_a),
                                  reverse=False)))
     # Rejected clusters.
     x_r, z_r, y_r = intens_area_all[1][1], intens_area_all[1][0],  \
         intens_area_all[1][2]
-    max_x = max(max(x_a), max(x_r))
-    max_y = max(max(y_a), max(y_r))
-    plt.xlim(-1, max_x + max_x * 0.1)
+    if len(x_r) > 0:
+        max_x = max(max(x_a), max(x_r))
+        max_y = max(max(y_a), max(y_r))
+    else:
+        max_x = max(x_a)
+        max_y = max(y_a)
+    plt.xlim(0., max_x + max_x * 0.1)
     plt.ylim(-1, max_y + max_y * 0.1)
     plt.xlabel("Radius", fontsize=12)
     plt.ylabel("N stars", fontsize=12)
@@ -133,10 +136,11 @@ def intensity_plot(f_name, mag_range, area_frac_range, intens_area_all,
     plt.grid(b=True, which='minor', color='gray', linestyle='-', zorder=1)
     cm = plt.cm.get_cmap('RdYlBu_r')
     v_min, v_max = 0, max(z_a + z_r)
-    plt.scatter(x_r, y_r, c=z_r, marker='s', lw=0.2, s=35, cmap=cm, vmin=v_min,
-                vmax=v_max,
-                label='Rejected overdensities ({})'.format(len(x_r)),
-                zorder=3)
+    if len(x_r) > 0:
+        plt.scatter(x_r, y_r, c=z_r, marker='s', lw=0.2, s=35, cmap=cm,
+                    vmin=v_min, vmax=v_max,
+                    label='Rejected overdensities ({})'.format(len(x_r)),
+                    zorder=3)
     SC = plt.scatter(ord_xa, ord_ya, c=ord_za, marker='o', lw=0.2, s=50,
                      cmap=cm, vmin=v_min, vmax=v_max,
                      label='Accepted overdensities ({})'.format(len(x_a)),

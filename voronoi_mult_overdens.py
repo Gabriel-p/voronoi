@@ -227,64 +227,76 @@ def main():
     print text1, text2
     text += text1 + text2
 
-    # Obtain Voronoi diagram using the *magnitude filtered coordinates*.
-    points = zip(x_mr, y_mr)
-    vor = Voronoi(points)
-    print 'Voronoi diagram obtained'
+    # # Obtain Voronoi diagram using the *magnitude filtered coordinates*.
+    # points = zip(x_mr, y_mr)
+    # vor = Voronoi(points)
+    # print 'Voronoi diagram obtained'
 
-    # Get data on Voronoi diagram.
-    print '\nProcessing Voronoi diagram'
-    acp_pts, acp_mags, rej_pts, pts_area, pts_vert = get_vor_data(points,
-                                                                  mag_mr, vor)
+    # # Get data on Voronoi diagram.
+    # print '\nProcessing Voronoi diagram'
+    # acp_pts, acp_mags, rej_pts, pts_area, pts_vert = get_vor_data(points,
+    #                                                               mag_mr, vor)
 
-    # Obtain average area *using filtered stars*.
-    avr_area = ((max(x_mr) - min(x_mr)) * (max(y_mr) - min(y_mr))) / len(x_mr)
-    # Filter out large border values.
-    pts_area_filt = []
-    for _ in pts_area:
-        if _ < (5 * avr_area):
-            pts_area_filt.append(_)
+    # # Obtain average area *using filtered stars*.
+    # avr_area = ((max(x_mr) - min(x_mr)) * (max(y_mr) - min(y_mr))) / len(x_mr)
+    # # Filter out large border values.
+    # pts_area_filt = []
+    # for _ in pts_area:
+    #     if _ < (5 * avr_area):
+    #         pts_area_filt.append(_)
 
-    # Calculate most probable area for the Voronoi cells.
-    most_prob_a = (5. / 7.) * np.mean(pts_area_filt)
-    text += ("\nMost probable area for Voronoi cells (stars filtered by "
-             "magnitude): {:.2f}\n".format(most_prob_a))
+    # # Calculate most probable area for the Voronoi cells.
+    # most_prob_a = (5. / 7.) * np.mean(pts_area_filt)
+    # text += ("\nMost probable area for Voronoi cells (stars filtered by "
+    #          "magnitude): {:.2f}\n".format(most_prob_a))
 
-    # Generate area histogram plot.
-    area_hist(f_name, mag_range, area_frac_range, pts_area_filt, avr_area)
+    # # Generate area histogram plot.
+    # area_hist(f_name, mag_range, area_frac_range, pts_area_filt, avr_area)
 
-    # Apply maximum area filter.
-    pts_thres, mag_thres, vert_thres = area_filter(
-        acp_pts, acp_mags, pts_area, pts_vert, most_prob_a, area_frac_range)
-    text1 = ("\n* Stars between area range ({:.2f}, {:.2f}): "
-             "{a3}\n".format(*area_frac_range, a3=len(pts_thres)))
-    print text1
-    text += text1
+    # # Apply maximum area filter.
+    # pts_thres, mag_thres, vert_thres = area_filter(
+    #     acp_pts, acp_mags, pts_area, pts_vert, most_prob_a, area_frac_range)
+    # text1 = ("\n* Stars between area range ({:.2f}, {:.2f}): "
+    #          "{a3}\n".format(*area_frac_range, a3=len(pts_thres)))
+    # print text1
+    # text += text1
 
-    print 'Detect shared vertex'
-    all_groups = shared_vertex(vert_thres)
+    # print 'Detect shared vertex'
+    # all_groups = shared_vertex(vert_thres)
 
-    # This is a costly process.
-    print '\nAssign points to groups'
-    neighbors = group_stars(pts_thres, vert_thres, all_groups)
+    # # This is a costly process.
+    # print '\nAssign points to groups'
+    # neighbors = group_stars(pts_thres, vert_thres, all_groups)
 
-    # Keep only those groups with a higher number of members than
-    # min_neighbors.
-    print '\nDiscard groups with total number of members below the limit.'
-    pts_neighbors = neighbors_filter(neighbors, m_n)
+    # # Keep only those groups with a higher number of members than
+    # # min_neighbors.
+    # print '\nDiscard groups with total number of members below the limit.'
+    # pts_neighbors = neighbors_filter(neighbors, m_n)
+    pts_neighbors = [1]
 
     # Check if at least one group was defined with the minimum
     # required number of neighbors.
     if len(pts_neighbors) > 0:
 
-        # Obtain center and radius for each overdensity identified.
-        text1 = "\nGroups with more than {} members: {}".format(
-            m_n, len(pts_neighbors))
-        print text1
-        text += text1
-        cent_rad = get_cent_rad(pts_neighbors)
-        # old_cent_rad, new_cent_rad = cent_rad, []
-        # old_cent_rad, new_cent_rad = merge_overdens(cent_rad)
+        # # Obtain center and radius for each overdensity identified.
+        # text1 = "\nGroups with more than {} members: {}".format(
+        #     m_n, len(pts_neighbors))
+        # print text1
+        # text += text1
+        # cent_rad = get_cent_rad(pts_neighbors)
+        # # old_cent_rad, new_cent_rad = cent_rad, []
+        # # old_cent_rad, new_cent_rad = merge_overdens(cent_rad)
+
+        # Load compare file centers and radii.
+        com_file = 'bica.dat'
+        file_data = np.loadtxt(com_file)
+        i, j, k, q = 0, 1, 2, 3
+        # Extract coordinates and zip them into lists.
+        cc_x, cc_y, cr_x, cr_y = zip(*file_data)[i], zip(*file_data)[j], \
+            zip(*file_data)[k], zip(*file_data)[q]
+        cc_r = ((np.array(cr_x) + np.array(cr_y)) / 2.) / 2.
+        cent_rad = zip(*[cc_x, cc_y, cc_r])
+        pts_thres, mag_thres = zip(*[x_mr, y_mr]), mag_mr
 
         print "\nFilter groups by intensity/area."
         old_cent_rad, new_cent_rad, intens_area_all = filt_integ_mag(

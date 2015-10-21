@@ -70,7 +70,7 @@ c_x, c_y, r = zip(*file_data)[i], zip(*file_data)[j],  zip(*file_data)[k]
 # Load compare file centers and radii.
 com_file = 'bica.dat'
 file_data = np.loadtxt(com_file)
-i, j, k, q = 5, 4, 6, 7
+i, j, k, q = 0, 1, 2, 3
 # Extract coordinates and zip them into lists.
 cc_x, cc_y, cr_x, cr_y = zip(*file_data)[i], zip(*file_data)[j], \
     zip(*file_data)[k], zip(*file_data)[q]
