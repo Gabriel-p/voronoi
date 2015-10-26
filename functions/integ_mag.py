@@ -16,7 +16,7 @@ def calc_integ_mag(mags):
     for mag_i in sort_lis:
         energ_sum = energ_sum + 10 ** (mag_i / -2.5)
 
-    int_mag_val = -2.5 * np.log10(energ_sum)
+    int_mag_val = -2.5 * np.log10(max(1e-20, energ_sum))
 
     return int_mag_val
 
@@ -32,7 +32,12 @@ def filt_integ_mag(x_mr, y_mr, pts_thres, mag_thres, cent_rad, intens_frac):
     intens_area_all = [[[], [], []], [[], [], []]]
 
     # Obtain frame's integrated magnitude per area unit.
-    frame_int_mag = calc_integ_mag(mag_thres)
+    # frame_int_mag = calc_integ_mag(mag_thres)
+    mag_temp = []
+    for _ in mag_thres:
+        if _ > 17:
+            mag_temp.append(_)
+    frame_int_mag = calc_integ_mag(mag_temp)
     frame_area = (max(x_thr) - min(x_thr)) * (max(y_thr) - min(y_thr))
     frame_intens_area = 1.
     print frame_int_mag
@@ -48,7 +53,8 @@ def filt_integ_mag(x_mr, y_mr, pts_thres, mag_thres, cent_rad, intens_frac):
             if d <= r:
                 N += 1
 
-        # Group stars within this circle.
+        # Group stars within this circle, using only stars that passed the area
+        # threshold.
         clust_mags = []
         for i, (x, y) in enumerate(pts_thres):
             d = np.sqrt((c_x - x) ** 2 + (c_y - y) ** 2)
@@ -59,7 +65,7 @@ def filt_integ_mag(x_mr, y_mr, pts_thres, mag_thres, cent_rad, intens_frac):
         clust_intens = 10 ** (0.4 * (frame_int_mag - clust_int_mag))
         clust_intens_area = (clust_intens * frame_area) / clust_area
 
-        print clust_area, clust_area / N, clust_int_mag, clust_intens_area
+        print c_x, c_y, r, N, clust_intens_area
 
         # If the overdensity has an intensity per unit area (I/A) larger than a
         # given fraction of the frame's I/A, keep (j=0). Else, discard (j=1).

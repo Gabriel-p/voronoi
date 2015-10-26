@@ -222,8 +222,8 @@ def main():
                                                mag_range)
     text += 'Photometric data obtained\n'
     text1 = 'Total stars: {}\n'.format(len(x))
-    text2 = 'Stars filtered by {} <= mag < {}: {arg3}\n'.format(
-        *mag_range, arg3=len(x_mr))
+    text2 = 'Stars filtered by {} <= mag < {}: {a3}\n'.format(
+        *mag_range, a3=len(x_mr))
     print text1, text2
     text += text1 + text2
 
@@ -294,7 +294,8 @@ def main():
         # Extract coordinates and zip them into lists.
         cc_x, cc_y, cr_x, cr_y = zip(*file_data)[i], zip(*file_data)[j], \
             zip(*file_data)[k], zip(*file_data)[q]
-        cc_r = ((np.array(cr_x) + np.array(cr_y)) / 2.) / 2.
+        # cc_r = ((np.array(cr_x) + np.array(cr_y)) / 2.) / 2.
+        cc_r = np.array(cr_x) / (60 * 2.)
         cent_rad = zip(*[cc_x, cc_y, cc_r])
         pts_thres, mag_thres = zip(*[x_mr, y_mr]), mag_mr
 
