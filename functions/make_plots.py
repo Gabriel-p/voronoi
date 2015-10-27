@@ -9,16 +9,12 @@ import bisect
 # from scipy.spatial import voronoi_plot_2d
 
 
-def save_plot(f_name, fig_id, fig, m_rang, area_frac_range, m_n):
+def save_plot(f_name, fig_id, fig):
     '''
     Save output png file.
     '''
-    a_f_min, a_f_max = [round(_, 2) for _ in area_frac_range]
     fig.tight_layout()
-    mn_str = '_' + str(m_n) if m_n != '' else ''
-    fig_name = 'out_fig_dat/' + f_name + '_' + fig_id + '_' +\
-        str(round(m_rang, 1)) + '_' + str(a_f_min) + '_' + str(a_f_max) +\
-        mn_str + '.png'
+    fig_name = 'out_fig_dat/' + f_name + '_' + fig_id + '.png'
     plt.savefig(fig_name, dpi=300)
 
 
@@ -36,7 +32,7 @@ def vor_2d_poisson(y):
     return f_y
 
 
-def area_hist(f_name, mag_range, area_frac_range, pts_area_filt, avr_area):
+def area_hist(f_name, mag_range, area_frac_range, pts_area_filt):
     '''
     '''
     fig = plt.figure(figsize=(10, 10))
@@ -76,12 +72,46 @@ def area_hist(f_name, mag_range, area_frac_range, pts_area_filt, avr_area):
     # use them in the legend
     ax1.legend(handles, labels, loc='upper right', numpoints=2, fontsize=11)
     # Save plot to file.
-    save_plot(f_name, 'area_histo', fig, round(mag_range[1], 1),
-              area_frac_range, '')
+    save_plot(f_name, 'area_histo', fig)
 
 
-def intensity_plot(f_name, mag_range, area_frac_range, intens_area_all,
-                   intens_frac):
+def dens_vs_intens_plot(f_name, mag_range, dens_all, intens_area_all,
+                        dens_frac, intens_frac):
+    '''
+    '''
+    fig = plt.figure(figsize=(10, 10))
+    ax = plt.subplot(111)
+    # All clusters.
+    x_a, y_a = intens_area_all[2], dens_all[2]
+    max_x = max(x_a)
+    max_y = max(y_a)
+    plt.xlim(0., max_x + max_x * 0.1)
+    plt.ylim(0., max_y + max_y * 0.1)
+    plt.xlabel("Intensity / (unit area)", fontsize=12)
+    plt.ylabel("(N in mag range) / (unit area)", fontsize=12)
+    # Set minor ticks
+    plt.minorticks_on()
+    # Set grid
+    plt.grid(b=True, which='major', color='gray', linestyle='-', zorder=1)
+    plt.grid(b=True, which='minor', color='gray', linestyle='-', zorder=1)
+    # Scatter points.
+    plt.scatter(x_a, y_a, c='gray', marker='o', lw=0.2, s=50,
+                label='Overdensities ({})'.format(len(x_a)), zorder=4)
+    # Add text box.
+    text = '     Mag range:\n{} <= mag < {}'.format(*mag_range)
+    ob = offsetbox.AnchoredText(text, pad=0.5, loc=1, prop=dict(size=11))
+    ob.patch.set(alpha=0.5)
+    ax.add_artist(ob)
+    # Legend.
+    leg = plt.legend(fancybox=True, loc='upper left', scatterpoints=1,
+                     fontsize=10, markerscale=1.)
+    # Set the alpha value of the legend.
+    leg.get_frame().set_alpha(0.85)
+    # Save plot to file.
+    save_plot(f_name, 'dens_vs_intens', fig)
+
+
+def intensity_plot(f_name, mag_range, intens_area_all, intens_frac):
     '''
     '''
     fig = plt.figure(figsize=(20, 10))
@@ -100,7 +130,7 @@ def intensity_plot(f_name, mag_range, area_frac_range, intens_area_all,
     plt.hist(intens_area, color='#C6D8E5', bins=50, range=[0., max_val],
              weights=weights, normed=True)
     # Add text box.
-    text = '{} <= mag < {}'.format(*mag_range)
+    text = 'Mag range:\n{} <= mag < {}'.format(*mag_range)
     ob = offsetbox.AnchoredText(text, pad=0.5, loc=7, prop=dict(size=11))
     ob.patch.set(alpha=0.5)
     ax1.add_artist(ob)
@@ -128,7 +158,7 @@ def intensity_plot(f_name, mag_range, area_frac_range, intens_area_all,
     plt.xlim(0., max_x + max_x * 0.1)
     plt.ylim(-1, max_y + max_y * 0.1)
     plt.xlabel("Radius", fontsize=12)
-    plt.ylabel("N stars", fontsize=12)
+    plt.ylabel("N stars (above area threshold)", fontsize=12)
     # Set minor ticks
     plt.minorticks_on()
     # Set grid
@@ -164,8 +194,7 @@ def intensity_plot(f_name, mag_range, area_frac_range, intens_area_all,
     cbar.set_label("Intensity / (unit area)", fontsize=12, labelpad=5)
 
     # Save plot to file.
-    save_plot(f_name, 'intensity', fig, round(mag_range[1], 1),
-              area_frac_range, '')
+    save_plot(f_name, 'intensity', fig)
 
 
 def star_size(mag_data):
@@ -206,25 +235,26 @@ def dens_map(x_data, y_data, new_cent_rad):
     return h_g, dens_cent_rad
 
 
-def vor_plot(f_name, m_rang, area_frac_range, m_n, x, y, mag, x_mr, y_mr,
-             pts_thres, neighbors_plot, old_cent_rad, new_cent_rad, vor):
+def vor_plot(f_name, x, y, mag, coords_flag, x_mr, y_mr, vor, pts_thres,
+             neighbors_plot, intens_accp_groups, cent_rad):
     # figure size.
-    # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 40))
     fig = plt.figure(figsize=(40, 20))
     gs = gridspec.GridSpec(2, 4)
 
-    plt.subplot(gs[0:2, 0:2])
-    plt.gca().set_aspect('equal')
+    ax = plt.subplot(gs[0:2, 0:2])
+    # plt.gca().set_aspect('equal')
     x_min, x_max = min(x), max(x)
     y_min, y_max = min(y), max(y)
     plt.xlim(x_min, x_max)
     plt.ylim(y_min, y_max)
-    # If RA is used, invert axis.
-    # plt.gca().invert_xaxis()
-    # plt.xlabel('{} ({})'.format('RA', 'deg'), fontsize=12)
-    # plt.ylabel('{} ({})'.format('DEC', 'deg'), fontsize=12)
-    plt.xlabel('{} ({})'.format('X', 'px'), fontsize=12)
-    plt.ylabel('{} ({})'.format('Y', 'px'), fontsize=12)
+    if coords_flag == 'deg':
+        # If RA is used, invert axis.
+        ax.invert_xaxis()
+        plt.xlabel('{} ({})'.format('RA', 'deg'), fontsize=12)
+        plt.ylabel('{} ({})'.format('DEC', 'deg'), fontsize=12)
+    else:
+        plt.xlabel('{} ({})'.format('X', 'px'), fontsize=12)
+        plt.ylabel('{} ({})'.format('Y', 'px'), fontsize=12)
     # Set minor ticks
     plt.minorticks_on()
     # Set grid
@@ -256,13 +286,13 @@ def vor_plot(f_name, m_rang, area_frac_range, m_n, x, y, mag, x_mr, y_mr,
     leg.get_frame().set_alpha(0.85)
 
     # Print radii for merged groups.
-    for c_r in old_cent_rad:
+    for c_r in cent_rad:
         circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='b', ls='dashed',
                             fill=False, lw=1.2)
         fig.gca().add_artist(circle)
 
     # Print radii for final groups.
-    for c_r in new_cent_rad:
+    for c_r in intens_accp_groups:
         circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='r',
                             fill=False, lw=1.2)
         fig.gca().add_artist(circle)
@@ -291,7 +321,7 @@ def vor_plot(f_name, m_rang, area_frac_range, m_n, x, y, mag, x_mr, y_mr,
     ax1 = plt.subplot(gs[0, 2])
     ax1.xaxis.set_visible(False)
     ax1.yaxis.set_visible(False)
-    h_g, dens_cent_rad = dens_map(x, y, new_cent_rad)
+    h_g, dens_cent_rad = dens_map(x, y, intens_accp_groups)
     ax1.imshow(h_g.transpose(), origin='lower', cmap=cm, aspect='auto')
     # Print radii
     for c_r in dens_cent_rad:
@@ -311,7 +341,7 @@ def vor_plot(f_name, m_rang, area_frac_range, m_n, x, y, mag, x_mr, y_mr,
     # Add extreme points so aspect is the same for all density maps.
     x_mr = x_mr + [min(x), max(x)]
     y_mr = y_mr + [min(y), max(y)]
-    h_g, dens_cent_rad = dens_map(x_mr, y_mr, new_cent_rad)
+    h_g, dens_cent_rad = dens_map(x_mr, y_mr, intens_accp_groups)
     ax2.imshow(h_g.transpose(), origin='lower', cmap=cm, aspect='auto')
     # Print radii
     for c_r in dens_cent_rad:
@@ -331,7 +361,7 @@ def vor_plot(f_name, m_rang, area_frac_range, m_n, x, y, mag, x_mr, y_mr,
     # Add extreme points so aspect is the same for all density maps.
     x_t = list(x_t) + [min(x), max(x)]
     y_t = list(y_t) + [min(y), max(y)]
-    h_g, dens_cent_rad = dens_map(x_t, y_t, new_cent_rad)
+    h_g, dens_cent_rad = dens_map(x_t, y_t, intens_accp_groups)
     ax3.imshow(h_g.transpose(), origin='lower', cmap=cm, aspect='auto')
     # Print radii
     for c_r in dens_cent_rad:
@@ -352,7 +382,7 @@ def vor_plot(f_name, m_rang, area_frac_range, m_n, x, y, mag, x_mr, y_mr,
     # Add extreme points so aspect is the same for all density maps.
     x_n = list(x_n) + [min(x), max(x)]
     y_n = list(y_n) + [min(y), max(y)]
-    h_g, dens_cent_rad = dens_map(x_n, y_n, new_cent_rad)
+    h_g, dens_cent_rad = dens_map(x_n, y_n, intens_accp_groups)
     ax4.imshow(h_g.transpose(), origin='lower', cmap=cm, aspect='auto')
     # Print radii
     for c_r in dens_cent_rad:
@@ -366,4 +396,28 @@ def vor_plot(f_name, m_rang, area_frac_range, m_n, x, y, mag, x_mr, y_mr,
     ax4.add_artist(ob)
 
     # Save plot to file.
-    save_plot(f_name, 'voronoi', fig, m_rang, area_frac_range, m_n)
+    save_plot(f_name, 'voronoi', fig)
+
+
+def all_plots(f_name, mag_range, area_frac_range, x, y, mag,
+              coords_flag, x_mr, y_mr, pts_area_filt,
+              vor, pts_area_thres, pts_neighbors,
+              intens_frac, dens_frac, dens_all, intens_area_all,
+              intens_accp_groups, cent_rad):
+    '''
+    Make all plots.
+    '''
+    # Generate area histogram plot.
+    area_hist(f_name, mag_range, area_frac_range, pts_area_filt)
+
+    if pts_neighbors:
+        # Density versus intensities plots.
+        dens_vs_intens_plot(f_name, mag_range, dens_all, intens_area_all,
+                            dens_frac, intens_frac)
+
+        # Intensities plots.
+        intensity_plot(f_name, mag_range, intens_area_all, intens_frac)
+
+        # Plot main diagram.
+        vor_plot(f_name, x, y, mag, coords_flag, x_mr, y_mr, vor,
+                 pts_area_thres, pts_neighbors, intens_accp_groups, cent_rad)

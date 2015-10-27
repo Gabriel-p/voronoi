@@ -1,38 +1,42 @@
 
 
-def save_cent_rad(f_name, m_rang, area_frac_range, m_n, new_cent_rad,
-                  old_cent_rad):
+def save_cent_rad(f_name, cent_rad, dens_accp_groups, dens_rej_groups,
+                  intens_accp_groups, intens_rej_groups):
     '''
     Save center and radius data to file for each parameter value processed.
     '''
 
-    a_f_min, a_f_max = [round(_, 2) for _ in area_frac_range]
-    data_out = 'out_fig_dat/' + f_name + '_' + str(round(m_rang, 1)) + '_' +\
-        str(a_f_min) + '_' + str(a_f_max) + '_' + str(m_n) + '.out'
+    data_out = 'out_fig_dat/' + f_name + '.out'
     with open(data_out, 'w') as f:
-        f.write("#a_f_min    a_f_max  min_n    cent_x    cent_y     rad\n")
+        f.write("#\n#cent_x    cent_y     rad\n#\n")
+
     with open(data_out, 'a') as f:
-        for i, l in enumerate(new_cent_rad):
-            f.write("{:8.2f}{:8.2f}{:>6.0f}{:>16.4f}{:>10.4f}{:>10.4f}\n".
-                    format(a_f_min, a_f_max, m_n, *l))
+        f.write("#All groups detected.\n")
+        for l in cent_rad:
+            f.write("{:<10.4f}{:>10.4f}{:>10.4f}\n".format(*l))
 
-    if old_cent_rad:
-        with open(data_out, 'a') as f:
-            f.write("#REJECTED GROUPS BELOW.\n")
-        with open(data_out, 'a') as f:
-            for i, l in enumerate(old_cent_rad):
-                f.write("{:8.2f}{:8.2f}{:>6.0f}{:>16.4f}{:>10.4f}{:>10.4f}\n".
-                        format(a_f_min, a_f_max, m_n, *l))
+        f.write("#\n#Groups with accepted density values.\n")
+        for l in dens_accp_groups:
+            f.write("{:<10.4f}{:>10.4f}{:>10.4f}\n".format(*l))
+
+        f.write("#\n#Groups with rejected density values.\n")
+        for l in dens_rej_groups:
+            f.write("{:<10.4f}{:>10.4f}{:>10.4f}\n".format(*l))
+
+        f.write("#\n#Groups with accepted intensity/area values.\n")
+        for l in intens_accp_groups:
+            f.write("{:<10.4f}{:>10.4f}{:>10.4f}\n".format(*l))
+
+        f.write("#\n#Groups with rejected intensity/area values.\n")
+        for l in intens_rej_groups:
+            f.write("{:<10.4f}{:>10.4f}{:>10.4f}\n".format(*l))
 
 
-def save_to_log(f_name, text, m_rang, i):
+def save_to_log(f_name, text, w_a):
     '''
     Save info to .log file.
     '''
-    data_out = 'out_fig_dat/' + f_name + '_' + str(round(m_rang, 1)) + '.log'
-    if i == 0:
-        with open(data_out, 'w') as f:
-            f.write("{}\n".format(text))
-    else:
-        with open(data_out, 'a') as f:
-            f.write("{}\n".format(text))
+    print text
+    data_out = 'out_fig_dat/' + f_name + '.log'
+    with open(data_out, w_a) as f:
+        f.write("{}\n".format(text))
