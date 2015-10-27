@@ -11,7 +11,7 @@ FN junk_psf.dat
 #
 #   x   y  mag    px/deg
 #
-FD  0   1    8       deg
+DC  0   1    8       deg
 
 # Ranges are defined as: [min_mag, max_mag), i.e. the maximum value is excluded.
 
@@ -19,17 +19,21 @@ FD  0   1    8       deg
 #
 #    min   max
 #
-MR     1   20
+MR     1   20.
 
 # Area range (fraction of most probable Voronoi polygon area).
 #
 #    min   max
 #
-MA   0.45    0.75
+MA   0.5    0.75
 
 # Minimum number of neighbors (single integer).
 #
 MN  5
+
+# Fraction of frame's density (stars per area unit).
+#
+FD  1.
 
 # Fraction of frame's intensity per area unit.
 #

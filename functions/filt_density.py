@@ -1,10 +1,15 @@
 
 import numpy as np
+from math import hypot
+
+
+def in_radius(c_x, c_y, r, x, y):
+    return hypot(c_x - x, c_y - y) <= r
 
 
 def filt_density(fr_area, x_mr, y_mr, cent_rad, dens_frac):
     '''
-    Apply integrated magnitude filter.
+    Apply density filter.
     '''
 
     # Frame's density.
@@ -17,8 +22,7 @@ def filt_density(fr_area, x_mr, y_mr, cent_rad, dens_frac):
         # magnitude filter.
         N = 0
         for x, y in zip(*[x_mr, y_mr]):
-            d = np.sqrt((c_x - x) ** 2 + (c_y - y) ** 2)
-            if d <= r:
+            if in_radius(c_x, c_y, r, x, y):
                 N += 1
 
         # Obtain density for this cluster, normalized to 1. for the frame's
