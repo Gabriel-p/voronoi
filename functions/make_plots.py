@@ -87,19 +87,22 @@ def dens_vs_intens_plot(f_name, mag_range, intens_area_all, dens_frac,
     max_y = max(y_a)
     plt.xlim(0., max_x + max_x * 0.1)
     plt.ylim(0., max_y + max_y * 0.1)
-    plt.xlabel("Intensity / (unit area)", fontsize=12)
-    plt.ylabel("(N in mag range) / (unit area)", fontsize=12)
+    plt.xlabel("Intensity / area", fontsize=12)
+    plt.ylabel("(N in mag range) / area", fontsize=12)
     # Set minor ticks
     plt.minorticks_on()
     # Set grid
     plt.grid(b=True, which='major', color='gray', linestyle='-', zorder=1)
     plt.grid(b=True, which='minor', color='gray', linestyle='-', zorder=1)
+    plt.axhline(y=1., color='r', ls='--', lw=2, label='(N in frame) / area')
+    plt.axvline(x=1., color='b', ls='--', lw=2,
+                label="(Frame's intensity) / area")
     # Scatter points.
     plt.scatter(x_a, y_a, c='gray', marker='o', lw=0.2, s=50,
                 label='Overdensities ({})'.format(len(x_a)), zorder=4)
     # Add text box.
     text = '     Mag range:\n{} <= mag < {}'.format(*mag_range)
-    ob = offsetbox.AnchoredText(text, pad=0.5, loc=1, prop=dict(size=11))
+    ob = offsetbox.AnchoredText(text, pad=0.5, loc=1, prop=dict(size=10))
     ob.patch.set(alpha=0.5)
     ax.add_artist(ob)
     # Legend.
@@ -116,22 +119,22 @@ def intensity_plot(f_name, mag_range, intens_area_all, intens_frac):
     '''
     fig = plt.figure(figsize=(20, 10))
     ax1 = plt.subplot(121)
-    plt.xlabel("Intensity / (unit area)", fontsize=12)
+    plt.xlabel("Intensity / area", fontsize=12)
     plt.ylabel("Normalized distribution", fontsize=12)
     # Vertical lines.
     intens_area = intens_area_all[0][0] + intens_area_all[1][0]
     max_val = max(intens_area)
     plt.axvline(x=1., color='k', ls='--', lw=2,
-                label="(Frame's intensity) / (area unit) = 1.")
+                label="(Frame's intensity) / area = 1.")
     plt.axvline(x=intens_frac, color='r', ls='--', lw=2,
-                label='Minimum intensity / (unit area)')
+                label='(Minimum intensity) / area')
     # Normalized histogram.
     weights = np.ones_like(intens_area)/len(intens_area)
     plt.hist(intens_area, color='#C6D8E5', bins=50, range=[0., max_val],
              weights=weights, normed=True)
     # Add text box.
-    text = 'Mag range:\n{} <= mag < {}'.format(*mag_range)
-    ob = offsetbox.AnchoredText(text, pad=0.5, loc=7, prop=dict(size=11))
+    text = '     Mag range:\n{} <= mag < {}'.format(*mag_range)
+    ob = offsetbox.AnchoredText(text, pad=0.5, loc=7, prop=dict(size=10))
     ob.patch.set(alpha=0.5)
     ax1.add_artist(ob)
     # get handles
@@ -176,7 +179,7 @@ def intensity_plot(f_name, mag_range, intens_area_all, intens_frac):
                      label='Accepted overdensities ({})'.format(len(x_a)),
                      zorder=4)
     # Add text box.
-    text = 'Minimum intensity / (unit area): {}'.format(intens_frac)
+    text = '(Minimum intensity) / area: {}'.format(intens_frac)
     ob = offsetbox.AnchoredText(text, pad=0.5, loc=6, prop=dict(size=10))
     ob.patch.set(alpha=0.5)
     ax2.add_artist(ob)
@@ -191,7 +194,7 @@ def intensity_plot(f_name, mag_range, intens_area_all, intens_frac):
     color_axis = the_divider.append_axes("right", size="2%", pad=0.1)
     # Colorbar.
     cbar = plt.colorbar(SC, cax=color_axis)
-    cbar.set_label("Intensity / (unit area)", fontsize=12, labelpad=5)
+    cbar.set_label("Intensity / area", fontsize=12, labelpad=5)
 
     # Save plot to file.
     save_plot(f_name, 'intensity', fig)
