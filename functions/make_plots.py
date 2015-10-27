@@ -80,6 +80,44 @@ def area_hist(f_name, mag_range, area_frac_range, pts_area_filt, avr_area):
               area_frac_range, '')
 
 
+def dens_vs_intens_plot(f_name, mag_range, dens_all, intens_area_all,
+                        area_frac_range, intens_frac):
+    '''
+    '''
+    fig = plt.figure(figsize=(10, 10))
+    ax = plt.subplot(111)
+    # All clusters.
+    x_a, y_a = intens_area_all[2], dens_all[2]
+    max_x = max(x_a)
+    max_y = max(y_a)
+    plt.xlim(0., max_x + max_x * 0.1)
+    plt.ylim(0., max_y + max_y * 0.1)
+    plt.xlabel("Intensity / (unit area)", fontsize=12)
+    plt.ylabel("(N in mag range) / (unit area)", fontsize=12)
+    # Set minor ticks
+    plt.minorticks_on()
+    # Set grid
+    plt.grid(b=True, which='major', color='gray', linestyle='-', zorder=1)
+    plt.grid(b=True, which='minor', color='gray', linestyle='-', zorder=1)
+    # Scatter points.
+    plt.scatter(x_a, y_a, c='gray', marker='o', lw=0.2, s=50,
+                label='Accepted overdensities ({})'.format(len(x_a)),
+                zorder=4)
+    # Add text box.
+    text = '     Mag range:\n{} <= mag < {}'.format(*mag_range)
+    ob = offsetbox.AnchoredText(text, pad=0.5, loc=1, prop=dict(size=11))
+    ob.patch.set(alpha=0.5)
+    ax.add_artist(ob)
+    # Legend.
+    leg = plt.legend(fancybox=True, loc='upper left', scatterpoints=1,
+                     fontsize=10, markerscale=1.)
+    # Set the alpha value of the legend.
+    leg.get_frame().set_alpha(0.85)
+    # Save plot to file.
+    save_plot(f_name, 'dens_vs_intens', fig, round(mag_range[1], 1),
+              area_frac_range, '')
+
+
 def intensity_plot(f_name, mag_range, area_frac_range, intens_area_all,
                    intens_frac):
     '''
@@ -100,7 +138,7 @@ def intensity_plot(f_name, mag_range, area_frac_range, intens_area_all,
     plt.hist(intens_area, color='#C6D8E5', bins=50, range=[0., max_val],
              weights=weights, normed=True)
     # Add text box.
-    text = '{} <= mag < {}'.format(*mag_range)
+    text = 'Mag range:\n{} <= mag < {}'.format(*mag_range)
     ob = offsetbox.AnchoredText(text, pad=0.5, loc=7, prop=dict(size=11))
     ob.patch.set(alpha=0.5)
     ax1.add_artist(ob)
@@ -128,7 +166,7 @@ def intensity_plot(f_name, mag_range, area_frac_range, intens_area_all,
     plt.xlim(0., max_x + max_x * 0.1)
     plt.ylim(-1, max_y + max_y * 0.1)
     plt.xlabel("Radius", fontsize=12)
-    plt.ylabel("N stars", fontsize=12)
+    plt.ylabel("N stars (in mag range)", fontsize=12)
     # Set minor ticks
     plt.minorticks_on()
     # Set grid
@@ -206,25 +244,27 @@ def dens_map(x_data, y_data, new_cent_rad):
     return h_g, dens_cent_rad
 
 
-def vor_plot(f_name, m_rang, area_frac_range, m_n, x, y, mag, x_mr, y_mr,
-             pts_thres, neighbors_plot, old_cent_rad, new_cent_rad, vor):
+def vor_plot(f_name, m_rang, area_frac_range, m_n, x, y, mag, coords_flag,
+             x_mr, y_mr, pts_thres, neighbors_plot, old_cent_rad,
+             new_cent_rad, vor):
     # figure size.
-    # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 40))
     fig = plt.figure(figsize=(40, 20))
     gs = gridspec.GridSpec(2, 4)
 
-    plt.subplot(gs[0:2, 0:2])
-    plt.gca().set_aspect('equal')
+    ax = plt.subplot(gs[0:2, 0:2])
+    # plt.gca().set_aspect('equal')
     x_min, x_max = min(x), max(x)
     y_min, y_max = min(y), max(y)
     plt.xlim(x_min, x_max)
     plt.ylim(y_min, y_max)
-    # If RA is used, invert axis.
-    # plt.gca().invert_xaxis()
-    # plt.xlabel('{} ({})'.format('RA', 'deg'), fontsize=12)
-    # plt.ylabel('{} ({})'.format('DEC', 'deg'), fontsize=12)
-    plt.xlabel('{} ({})'.format('X', 'px'), fontsize=12)
-    plt.ylabel('{} ({})'.format('Y', 'px'), fontsize=12)
+    if coords_flag == 'deg':
+        # If RA is used, invert axis.
+        ax.invert_xaxis()
+        plt.xlabel('{} ({})'.format('RA', 'deg'), fontsize=12)
+        plt.ylabel('{} ({})'.format('DEC', 'deg'), fontsize=12)
+    else:
+        plt.xlabel('{} ({})'.format('X', 'px'), fontsize=12)
+        plt.ylabel('{} ({})'.format('Y', 'px'), fontsize=12)
     # Set minor ticks
     plt.minorticks_on()
     # Set grid

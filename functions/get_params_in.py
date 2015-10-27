@@ -15,7 +15,8 @@ def get_params_in():
                     in_file = str(reader[1])
                 # Input file's data columns.
                 if reader[0] == 'FD':
-                    in_file_cols = map(int, reader[1:])
+                    in_file_cols = map(int, reader[1:-1])
+                    coords_flag = str(reader[-1])
 
                 # Magnitude range.
                 elif reader[0] == 'MR':
@@ -33,5 +34,5 @@ def get_params_in():
                 elif reader[0] == 'FI':
                     intens_frac = float(reader[1])
 
-    return in_file, in_file_cols, mag_range, area_frac_range, min_neighbors,\
-        intens_frac
+    return in_file, in_file_cols, coords_flag, mag_range, area_frac_range,\
+        min_neighbors, intens_frac

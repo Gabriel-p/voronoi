@@ -6,10 +6,11 @@ import numpy as np
 from functions.get_params_in import get_params_in
 from functions.get_coords import get_coords
 from functions.get_cent_rad import get_cent_rad
-# from functions.group_overdens import merge_overdens
+from functions.filt_density import filt_density
 from functions.integ_mag import filt_integ_mag
 from functions.save_to_file import save_cent_rad, save_to_log
-from functions.make_plots import area_hist, intensity_plot, vor_plot
+from functions.make_plots import area_hist, dens_vs_intens_plot,\
+    intensity_plot, vor_plot
 
 
 def print_perc(i, tot_sols, milestones):
@@ -83,6 +84,24 @@ def get_vor_data(points, mag_mr, vor):
         milestones = print_perc(i, tot_sols, milestones)
 
     return acp_pts, acp_mags, rej_pts, pts_area, pts_vert
+
+
+def large_area_filt(pts_area, avr_area):
+    '''
+    Filter out polygons located at the borders of the frame with very large
+    area values.
+    Find most probable polygon area for the Voronoi cells of the Poisson
+    distribution.
+    '''
+    pts_area_filt = []
+    for _ in pts_area:
+        if _ < (5 * avr_area):
+            pts_area_filt.append(_)
+
+    # Calculate most probable area for the Voronoi cells.
+    most_prob_a = (5. / 7.) * np.mean(pts_area_filt)
+
+    return pts_area_filt, most_prob_a
 
 
 def area_filter(acp_pts, acp_mags, pts_area, pts_vert, most_prob_a,
@@ -206,8 +225,8 @@ def neighbors_filter(neighbors, min_neighbors):
 
 def main():
     # Read parameters from input file.
-    in_file, in_file_cols, mag_range, area_frac_range, m_n, intens_frac =\
-        get_params_in()
+    in_file, in_file_cols, coords_flag, mag_range, area_frac_range, m_n,\
+        intens_frac = get_params_in()
 
     # Each sub-list in 'in_file' is a row of the file.
     f_name = in_file[:-4]
@@ -218,14 +237,23 @@ def main():
     text = ''
 
     # Get points coordinates.
-    x_mr, y_mr, mag_mr, x, y, mag = get_coords(in_file, in_file_cols,
-                                               mag_range)
+    x_mr, y_mr, mag_mr, x, y, mag, ra_cent, dec_cent = get_coords(
+        in_file, in_file_cols, mag_range, coords_flag)
     text += 'Photometric data obtained\n'
     text1 = 'Total stars: {}\n'.format(len(x))
     text2 = 'Stars filtered by {} <= mag < {}: {a3}\n'.format(
         *mag_range, a3=len(x_mr))
     print text1, text2
     text += text1 + text2
+
+    # Obtain average area *using filtered stars*.
+    fr_area = ((max(x_mr) - min(x_mr)) * (max(y_mr) - min(y_mr)))
+    avr_area = fr_area / len(x_mr)
+
+    if coords_flag == 'deg':
+        print 'Center of frame: RA={}, DEC={}\n'.format(ra_cent, dec_cent)
+    else:
+        print 'Center of frame: x={}, y={}\n'.format(ra_cent, dec_cent)
 
     # # Obtain Voronoi diagram using the *magnitude filtered coordinates*.
     # points = zip(x_mr, y_mr)
@@ -237,55 +265,46 @@ def main():
     # acp_pts, acp_mags, rej_pts, pts_area, pts_vert = get_vor_data(points,
     #                                                               mag_mr, vor)
 
-    # # Obtain average area *using filtered stars*.
-    # avr_area = ((max(x_mr) - min(x_mr)) * (max(y_mr) - min(y_mr))) / len(x_mr)
-    # # Filter out large border values.
-    # pts_area_filt = []
-    # for _ in pts_area:
-    #     if _ < (5 * avr_area):
-    #         pts_area_filt.append(_)
-
-    # # Calculate most probable area for the Voronoi cells.
-    # most_prob_a = (5. / 7.) * np.mean(pts_area_filt)
+    # # Filter out large area values for border polygons.
+    # pts_area_filt, most_prob_a = large_area_filt(pts_area, avr_area)
     # text += ("\nMost probable area for Voronoi cells (stars filtered by "
     #          "magnitude): {:.2f}\n".format(most_prob_a))
-
     # # Generate area histogram plot.
     # area_hist(f_name, mag_range, area_frac_range, pts_area_filt, avr_area)
 
     # # Apply maximum area filter.
-    # pts_thres, mag_thres, vert_thres = area_filter(
+    # pts_area_thres, mag_area_thres, vert_area_thres = area_filter(
     #     acp_pts, acp_mags, pts_area, pts_vert, most_prob_a, area_frac_range)
     # text1 = ("\n* Stars between area range ({:.2f}, {:.2f}): "
-    #          "{a3}\n".format(*area_frac_range, a3=len(pts_thres)))
+    #          "{a3}\n".format(*area_frac_range, a3=len(pts_area_thres)))
     # print text1
     # text += text1
 
     # print 'Detect shared vertex'
-    # all_groups = shared_vertex(vert_thres)
+    # all_groups = shared_vertex(vert_area_thres)
 
     # # This is a costly process.
     # print '\nAssign points to groups'
-    # neighbors = group_stars(pts_thres, vert_thres, all_groups)
+    # neighbors = group_stars(pts_area_thres, vert_area_thres, all_groups)
+    # text1 = '\n{} groups found'.format(len(neighbors))
+    # print text1
+    # text += text1
 
     # # Keep only those groups with a higher number of members than
     # # min_neighbors.
-    # print '\nDiscard groups with total number of members below the limit.'
+    # print '\nFilter groups with number of members < {}'.format(m_n)
     # pts_neighbors = neighbors_filter(neighbors, m_n)
-    pts_neighbors = [1]
+    # text1 = '{} groups discarded'.format(len(neighbors) - len(pts_neighbors))
+    # print text1
+    # text += text1
 
     # Check if at least one group was defined with the minimum
     # required number of neighbors.
-    if len(pts_neighbors) > 0:
+    pts_neighbors = [0.]
+    if pts_neighbors:
 
         # # Obtain center and radius for each overdensity identified.
-        # text1 = "\nGroups with more than {} members: {}".format(
-        #     m_n, len(pts_neighbors))
-        # print text1
-        # text += text1
         # cent_rad = get_cent_rad(pts_neighbors)
-        # # old_cent_rad, new_cent_rad = cent_rad, []
-        # # old_cent_rad, new_cent_rad = merge_overdens(cent_rad)
 
         # Load compare file centers and radii.
         com_file = 'bica.dat'
@@ -294,28 +313,44 @@ def main():
         # Extract coordinates and zip them into lists.
         cc_x, cc_y, cr_x, cr_y = zip(*file_data)[i], zip(*file_data)[j], \
             zip(*file_data)[k], zip(*file_data)[q]
-        # cc_r = ((np.array(cr_x) + np.array(cr_y)) / 2.) / 2.
-        cc_r = np.array(cr_x) / (60 * 2.)
+        # Move center coordinates to new origin.
+        cc_x = (np.array(cc_x) - ra_cent) * np.cos(np.deg2rad(dec_cent))
+        cc_y = (np.array(cc_y) - dec_cent)
+        # Convert RA, DEC longitudes in arcmin to radii in degrees.
+        cr_x, cr_y = np.array(cr_x) / (60. * 2), np.array(cr_y) / (60. * 2)
+        cc_r = []
+        for rx, ry in zip(*[cr_x, cr_y]):
+            cc_r.append(max(rx, ry))
+        # Zip data.
         cent_rad = zip(*[cc_x, cc_y, cc_r])
-        pts_thres, mag_thres = zip(*[x_mr, y_mr]), mag_mr
+        pts_area_thres, mag_area_thres = zip(*[x_mr, y_mr]), mag_mr
+
+        print "\nFilter groups by density/area."
+        dens_accp_groups, dens_rej_groups, dens_all = filt_density(
+            fr_area, x_mr, y_mr, cent_rad, 1.)
+        text1 = '{} groups discarded.\n'.format(len(dens_rej_groups))
+        print text1
+        text += text1
 
         print "\nFilter groups by intensity/area."
-        old_cent_rad, new_cent_rad, intens_area_all = filt_integ_mag(
-            x_mr, y_mr, pts_thres, mag_thres, cent_rad, intens_frac)
-
-        text1 = '\n{} groups discarded/merged.'.format(len(old_cent_rad))
+        intes_accp_groups, intens_rej_groups, intens_area_all = filt_integ_mag(
+            x_mr, y_mr, pts_area_thres, mag_area_thres, cent_rad, intens_frac)
+        text1 = '{} groups discarded.\n'.format(len(intens_rej_groups))
         print text1
         text += text1
 
         print '\nPlotting.'
 
+        # Density versus intensities plots.
+        dens_vs_intens_plot(f_name, mag_range, dens_all, intens_area_all,
+                            area_frac_range, intens_frac)
         # Intensities plots.
         intensity_plot(f_name, mag_range, area_frac_range, intens_area_all,
                        intens_frac)
         # Plot main diagram.
-        vor_plot(f_name, mag_range[1], area_frac_range, m_n, x, y, mag, x_mr,
-                 y_mr, pts_thres, pts_neighbors, old_cent_rad, new_cent_rad,
-                 vor)
+        vor_plot(f_name, mag_range[1], area_frac_range, m_n, x, y, mag,
+                 coords_flag, x_mr, y_mr, pts_area_thres, pts_neighbors,
+                 old_cent_rad, new_cent_rad, vor)
 
         # Write data to file.
         save_cent_rad(f_name, mag_range[1], area_frac_range, m_n, new_cent_rad,

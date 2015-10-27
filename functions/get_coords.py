@@ -2,7 +2,7 @@
 import numpy as np
 
 
-def get_coords(in_file, in_file_cols, mag_range):
+def get_coords(in_file, in_file_cols, mag_range, coords_flag):
     '''
     Return coordinates from file.
     '''
@@ -21,6 +21,17 @@ def get_coords(in_file, in_file_cols, mag_range):
         x, y, mag = zip(*file_data)[i], zip(*file_data)[j], \
             zip(*file_data)[k]
 
+    if coords_flag == 'deg':
+        ra_cent = (max(x) + min(x)) / 2.
+        dec_cent = (max(y) + min(y)) / 2.
+    else:
+        ra_cent, dec_cent = 0., 0.
+
+    # Move coordinates to origin in center of frame. Apply cos(Dec) correction
+    # to RA coordinates.
+    x = (np.array(x) - ra_cent) * np.cos(np.deg2rad(dec_cent))
+    y = np.array(y) - dec_cent
+
     # Filter stars outside of magnitude range
     x_mr, y_mr, mag_mr = [], [], []
     for i, m in enumerate(mag):
@@ -29,4 +40,4 @@ def get_coords(in_file, in_file_cols, mag_range):
             y_mr.append(y[i])
             mag_mr.append(m)
 
-    return x_mr, y_mr, mag_mr, x, y, mag
+    return x_mr, y_mr, mag_mr, x, y, mag, ra_cent, dec_cent
