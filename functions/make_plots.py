@@ -75,14 +75,14 @@ def area_hist(f_name, mag_range, area_frac_range, pts_area_filt):
     save_plot(f_name, 'area_histo', fig)
 
 
-def dens_vs_intens_plot(f_name, mag_range, dens_all, intens_area_all,
-                        dens_frac, intens_frac):
+def dens_vs_intens_plot(f_name, mag_range, intens_area_all, dens_frac,
+                        intens_frac):
     '''
     '''
     fig = plt.figure(figsize=(10, 10))
     ax = plt.subplot(111)
-    # All clusters.
-    x_a, y_a = intens_area_all[2], dens_all[2]
+    # Clusters that passed both the density and I/A filters.
+    x_a, y_a = intens_area_all[0][0], intens_area_all[0][3]
     max_x = max(x_a)
     max_y = max(y_a)
     plt.xlim(0., max_x + max_x * 0.1)
@@ -235,8 +235,8 @@ def dens_map(x_data, y_data, new_cent_rad):
     return h_g, dens_cent_rad
 
 
-def vor_plot(f_name, x, y, mag, coords_flag, x_mr, y_mr, vor, pts_thres,
-             neighbors_plot, intens_accp_groups, cent_rad):
+def vor_plot(f_name, x, y, mag, coords_flag, x_mr, y_mr, pts_thres,
+             pts_neighbors, intens_accp_groups, cent_rad):
     # figure size.
     fig = plt.figure(figsize=(40, 20))
     gs = gridspec.GridSpec(2, 4)
@@ -274,7 +274,7 @@ def vor_plot(f_name, x, y, mag, coords_flag, x_mr, y_mr, vor, pts_thres,
                 edgecolor='g', label='Area filter')
     # Neighbor points.
     x_n, y_n = [], []
-    for g in neighbors_plot:
+    for g in pts_neighbors:
         x_n += list(g[0])
         y_n += list(g[1])
     plt.scatter(x_n, y_n, marker='o', s=3, lw=0.2, facecolor='none',
@@ -401,8 +401,8 @@ def vor_plot(f_name, x, y, mag, coords_flag, x_mr, y_mr, vor, pts_thres,
 
 def all_plots(f_name, mag_range, area_frac_range, x, y, mag,
               coords_flag, x_mr, y_mr, pts_area_filt,
-              vor, pts_area_thres, pts_neighbors,
-              intens_frac, dens_frac, dens_all, intens_area_all,
+              pts_area_thres, pts_neighbors,
+              intens_frac, dens_frac, intens_area_all,
               intens_accp_groups, cent_rad):
     '''
     Make all plots.
@@ -412,12 +412,13 @@ def all_plots(f_name, mag_range, area_frac_range, x, y, mag,
 
     if pts_neighbors:
         # Density versus intensities plots.
-        dens_vs_intens_plot(f_name, mag_range, dens_all, intens_area_all,
-                            dens_frac, intens_frac)
+        if intens_area_all[0][0]:
+            dens_vs_intens_plot(f_name, mag_range, intens_area_all,
+                                dens_frac, intens_frac)
 
         # Intensities plots.
         intensity_plot(f_name, mag_range, intens_area_all, intens_frac)
 
         # Plot main diagram.
-        vor_plot(f_name, x, y, mag, coords_flag, x_mr, y_mr, vor,
+        vor_plot(f_name, x, y, mag, coords_flag, x_mr, y_mr,
                  pts_area_thres, pts_neighbors, intens_accp_groups, cent_rad)

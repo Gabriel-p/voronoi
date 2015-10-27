@@ -295,7 +295,7 @@ def main():
 
     # Check if at least one group was defined with the minimum
     # required number of neighbors.
-    # pts_neighbors = [0.]
+    # pts_neighbors = [[[0.], [0.]]]
     if pts_neighbors:
 
         # Obtain center and radius for each overdensity identified.
@@ -320,15 +320,15 @@ def main():
         # cent_rad = zip(*[cc_x, cc_y, cc_r])
         # pts_area_thres, mag_area_thres = zip(*[x_mr, y_mr]), mag_mr
 
-        dens_accp_groups, dens_rej_groups, dens_all = filt_density(
+        dens_accp_groups, dens_rej_groups = filt_density(
             fr_area, x_mr, y_mr, cent_rad, dens_frac)
         save_to_log(
             f_name, "\nGroups filtered by density (stars/area): {}".format(
                 len(dens_accp_groups)), 'a')
 
         intens_accp_groups, intens_rej_groups, intens_area_all = \
-            filt_integ_mag(pts_area_thres, mag_area_thres,
-                           dens_accp_groups, intens_frac)
+            filt_integ_mag(pts_area_thres, mag_area_thres, dens_accp_groups,
+                           intens_frac)
         save_to_log(
             f_name, "\nGroups filtered by intensity/area: {}".format(
                 len(intens_accp_groups)), 'a')
@@ -343,9 +343,9 @@ def main():
 
     save_to_log(f_name, '\nPlotting', 'a')
     all_plots(f_name, mag_range, area_frac_range, x, y, mag,
-              coords_flag, x_mr, y_mr, pts_area_filt, vor,
+              coords_flag, x_mr, y_mr, pts_area_filt,
               pts_area_thres, pts_neighbors, intens_frac, dens_frac,
-              dens_all, intens_area_all, intens_accp_groups, cent_rad)
+              intens_area_all, intens_accp_groups, cent_rad)
 
     # Done.
     elapsed = time.time() - start

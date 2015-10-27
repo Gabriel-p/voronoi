@@ -21,7 +21,8 @@ def calc_integ_mag(mags):
     return int_mag_val
 
 
-def filt_integ_mag(pts_area_thres, mag_area_thres, cent_rad, intens_frac):
+def filt_integ_mag(pts_area_thres, mag_area_thres, dens_accp_groups,
+                   intens_frac):
     '''
     Apply integrated magnitude filter.
     '''
@@ -29,7 +30,7 @@ def filt_integ_mag(pts_area_thres, mag_area_thres, cent_rad, intens_frac):
     x_thr, y_thr = zip(*pts_area_thres)
 
     # Store *all* intensities per area unit.
-    intens_area_all = [[[], [], []], [[], [], []], []]
+    intens_area_all = [[[], [], [], []], [[], [], [], []]]
 
     # Obtain frame's integrated magnitude per area unit.
     frame_int_mag = calc_integ_mag(mag_area_thres)
@@ -39,15 +40,15 @@ def filt_integ_mag(pts_area_thres, mag_area_thres, cent_rad, intens_frac):
 
     # Obtain integrated magnitude for each defined circle.
     intens_accp_groups, intens_rej_groups, clust_intens_area = [], [], []
-    for c_x, c_y, r in cent_rad:
+    for c_x, c_y, r, clust_dens in dens_accp_groups:
 
         # Group stars within this circle, using only stars that passed the area
         # threshold.
         clust_mags, N = [], 0
-        for i, (x, y) in enumerate(pts_area_thres):
+        for j, (x, y) in enumerate(pts_area_thres):
             d = np.sqrt((c_x - x) ** 2 + (c_y - y) ** 2)
             if d <= r:
-                clust_mags.append(mag_area_thres[i])
+                clust_mags.append(mag_area_thres[j])
                 N += 1
         clust_int_mag = calc_integ_mag(clust_mags)
         clust_area = np.pi * (r ** 2)
@@ -62,11 +63,10 @@ def filt_integ_mag(pts_area_thres, mag_area_thres, cent_rad, intens_frac):
         else:
             intens_rej_groups.append([c_x, c_y, r])
             j = 1
-        # Store intensity/area for plotting.
+        # Store values for plotting.
         intens_area_all[j][0].append(clust_intens_area)
         intens_area_all[j][1].append(r)
         intens_area_all[j][2].append(N)
-        # Store all values for plotting.
-        intens_area_all[2].append(clust_intens_area)
+        intens_area_all[j][3].append(clust_dens)
 
     return intens_accp_groups, intens_rej_groups, intens_area_all
