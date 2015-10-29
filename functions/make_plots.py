@@ -75,20 +75,27 @@ def area_hist(f_name, mag_range, area_frac_range, pts_area_filt):
     save_plot(f_name, 'area_histo', fig)
 
 
-def dens_vs_intens_plot(f_name, mag_range, intens_area_all, dens_frac,
-                        intens_frac):
+def dens_vs_intens_plot(f_name, mag_range, dens_frac, intens_frac,
+                        intens_acc_dens_acc, intens_acc_dens_rej,
+                        intens_rej_dens_acc, intens_rej_dens_rej):
     '''
     '''
     fig = plt.figure(figsize=(10, 10))
     ax = plt.subplot(111)
     # Clusters that passed both the density and I/A filters.
-    x_a, y_a = intens_area_all[0][0], intens_area_all[0][3]
-    max_x = max(x_a)
-    max_y = max(y_a)
+    x_aa, y_aa = intens_acc_dens_acc[3], intens_acc_dens_acc[2]
+    # Clusters that passed the I/A but not the density filter.
+    x_ar, y_ar = intens_acc_dens_rej[3], intens_acc_dens_rej[2]
+    # Clusters that passed the density but not the I/A filter.
+    x_ra, y_ra = intens_rej_dens_acc[3], intens_rej_dens_acc[2]
+    # Clusters that passed neither the density nor the I/A filters.
+    x_rr, y_rr = intens_rej_dens_rej[3], intens_rej_dens_rej[2]
+    max_x = max(x_aa + x_ar + x_ra + x_rr)
+    max_y = max(y_aa + y_ar + y_ra + y_rr)
     plt.xlim(0., max_x + max_x * 0.1)
     plt.ylim(0., max_y + max_y * 0.1)
     plt.xlabel("Intensity / area", fontsize=12)
-    plt.ylabel("(N in mag range) / area", fontsize=12)
+    plt.ylabel("Density (N in mag range) / area", fontsize=12)
     # Set minor ticks
     plt.minorticks_on()
     # Set grid
@@ -98,15 +105,21 @@ def dens_vs_intens_plot(f_name, mag_range, intens_area_all, dens_frac,
     plt.axvline(x=1., color='b', ls='--', lw=2,
                 label="(Frame's intensity) / area")
     # Scatter points.
-    plt.scatter(x_a, y_a, c='gray', marker='o', lw=0.2, s=50,
-                label='Overdensities ({})'.format(len(x_a)), zorder=4)
+    plt.scatter(x_aa, y_aa, c='g', marker='o', lw=0.2, s=50,
+                label='Dens + I/A accp ({})'.format(len(x_aa)), zorder=4)
+    plt.scatter(x_ar, y_ar, c='gray', marker='o', lw=0.2, s=50,
+                label='I/A accp, Dens rej ({})'.format(len(x_ar)), zorder=4)
+    plt.scatter(x_ra, y_ra, c='gray', marker='o', lw=0.2, s=50,
+                label='Dens accp, I/A rej ({})'.format(len(x_ra)), zorder=4)
+    plt.scatter(x_rr, y_rr, c='m', marker='o', lw=0.2, s=50,
+                label='Dens + I/A rej ({})'.format(len(x_rr)), zorder=4)
     # Add text box.
     text = '     Mag range:\n{} <= mag < {}'.format(*mag_range)
     ob = offsetbox.AnchoredText(text, pad=0.5, loc=1, prop=dict(size=10))
     ob.patch.set(alpha=0.5)
     ax.add_artist(ob)
     # Legend.
-    leg = plt.legend(fancybox=True, loc='upper left', scatterpoints=1,
+    leg = plt.legend(fancybox=True, loc='lower right', scatterpoints=1,
                      fontsize=10, markerscale=1.)
     # Set the alpha value of the legend.
     leg.get_frame().set_alpha(0.85)
@@ -114,7 +127,8 @@ def dens_vs_intens_plot(f_name, mag_range, intens_area_all, dens_frac,
     save_plot(f_name, 'dens_vs_intens', fig)
 
 
-def intensity_plot(f_name, mag_range, intens_area_all, intens_frac):
+def intensity_plot(f_name, mag_range, intens_frac, intens_acc_dens_acc,
+                   intens_rej_dens_acc):
     '''
     '''
     fig = plt.figure(figsize=(20, 10))
@@ -122,13 +136,13 @@ def intensity_plot(f_name, mag_range, intens_area_all, intens_frac):
     plt.xlabel("Intensity / area", fontsize=12)
     plt.ylabel("Normalized distribution", fontsize=12)
     # Vertical lines.
-    intens_area = intens_area_all[0][0] + intens_area_all[1][0]
-    max_val = max(intens_area)
     plt.axvline(x=1., color='k', ls='--', lw=2,
                 label="(Frame's intensity) / area = 1.")
     plt.axvline(x=intens_frac, color='r', ls='--', lw=2,
-                label='(Minimum intensity) / area')
+                label='(Minimum intensity) / area = {}'.format(intens_frac))
     # Normalized histogram.
+    intens_area = intens_acc_dens_acc[3] + intens_rej_dens_acc[3]
+    max_val = max(intens_area)
     weights = np.ones_like(intens_area)/len(intens_area)
     plt.hist(intens_area, color='#C6D8E5', bins=50, range=[0., max_val],
              weights=weights, normed=True)
@@ -144,39 +158,43 @@ def intensity_plot(f_name, mag_range, intens_area_all, intens_frac):
 
     ax2 = plt.subplot(122)
     # Accepted clusters.
-    x_a, z_a, y_a = intens_area_all[0][1], intens_area_all[0][0], \
-        intens_area_all[0][2]
-    # Order lists to put min rad values on top.
-    ord_za, ord_xa, ord_ya = map(list, zip(*sorted(zip(z_a, x_a, y_a),
-                                 reverse=False)))
-    # Rejected clusters.
-    x_r, z_r, y_r = intens_area_all[1][1], intens_area_all[1][0],  \
-        intens_area_all[1][2]
-    if len(x_r) > 0:
-        max_x = max(max(x_a), max(x_r))
-        max_y = max(max(y_a), max(y_r))
+    if intens_acc_dens_acc[0]:
+        x_a, y_a, z_a = zip(*intens_acc_dens_acc[0])[2],\
+            intens_acc_dens_acc[1], intens_acc_dens_acc[3]
+        # Order lists to put min rad values on top.
+        ord_za, ord_xa, ord_ya = map(list, zip(*sorted(zip(z_a, x_a, y_a),
+                                     reverse=False)))
     else:
-        max_x = max(x_a)
-        max_y = max(y_a)
+        ord_za, ord_xa, ord_ya = [0.], [0.], [0.]
+    # Rejected clusters.
+    if intens_rej_dens_acc[0]:
+        x_r, y_r, z_r = zip(*intens_rej_dens_acc[0])[2],\
+            intens_rej_dens_acc[1], intens_rej_dens_acc[3]
+    else:
+        x_r, y_r, z_r = [0.], [0.], [0.]
+    # Limits.
+    max_x, max_y = max(ord_xa + x_r), max(ord_ya + y_r)
+    v_min, v_max = 0, max(ord_za + z_r)
+    # Plot.
     plt.xlim(0., max_x + max_x * 0.1)
     plt.ylim(-1, max_y + max_y * 0.1)
     plt.xlabel("Radius", fontsize=12)
-    plt.ylabel("N stars (above area threshold)", fontsize=12)
+    plt.ylabel("N stars (in mag range)", fontsize=12)
     # Set minor ticks
     plt.minorticks_on()
     # Set grid
     plt.grid(b=True, which='major', color='gray', linestyle='-', zorder=1)
     plt.grid(b=True, which='minor', color='gray', linestyle='-', zorder=1)
     cm = plt.cm.get_cmap('RdYlBu_r')
-    v_min, v_max = 0, max(z_a + z_r)
-    if len(x_r) > 0:
+    # Only plot if list is not empty.
+    if x_r:
         plt.scatter(x_r, y_r, c=z_r, marker='s', lw=0.2, s=35, cmap=cm,
                     vmin=v_min, vmax=v_max,
                     label='Rejected overdensities ({})'.format(len(x_r)),
                     zorder=3)
     SC = plt.scatter(ord_xa, ord_ya, c=ord_za, marker='o', lw=0.2, s=50,
                      cmap=cm, vmin=v_min, vmax=v_max,
-                     label='Accepted overdensities ({})'.format(len(x_a)),
+                     label='Accepted overdensities ({})'.format(len(ord_xa)),
                      zorder=4)
     # Add text box.
     text = '(Minimum intensity) / area: {}'.format(intens_frac)
@@ -188,7 +206,6 @@ def intensity_plot(f_name, mag_range, intens_area_all, intens_frac):
                      fontsize=10, markerscale=1.)
     # Set the alpha value of the legend.
     leg.get_frame().set_alpha(0.85)
-
     # Position colorbar.
     the_divider = make_axes_locatable(ax2)
     color_axis = the_divider.append_axes("right", size="2%", pad=0.1)
@@ -405,8 +422,8 @@ def vor_plot(f_name, x, y, mag, coords_flag, x_mr, y_mr, pts_thres,
 def all_plots(f_name, mag_range, area_frac_range, x, y, mag,
               coords_flag, x_mr, y_mr, pts_area_filt,
               pts_area_thres, pts_neighbors,
-              intens_frac, dens_frac, intens_area_all,
-              intens_accp_groups, cent_rad):
+              intens_frac, dens_frac, cent_rad, intens_acc_dens_acc,
+              intens_acc_dens_rej, intens_rej_dens_acc, intens_rej_dens_rej):
     '''
     Make all plots.
     '''
@@ -415,12 +432,13 @@ def all_plots(f_name, mag_range, area_frac_range, x, y, mag,
 
     if pts_neighbors:
         # Density versus intensities plots.
-        if intens_area_all[0][0]:
-            dens_vs_intens_plot(f_name, mag_range, intens_area_all,
-                                dens_frac, intens_frac)
+        dens_vs_intens_plot(f_name, mag_range, dens_frac, intens_frac,
+                            intens_acc_dens_acc, intens_acc_dens_rej,
+                            intens_rej_dens_acc, intens_rej_dens_rej)
 
         # Intensities plots.
-        intensity_plot(f_name, mag_range, intens_area_all, intens_frac)
+        intensity_plot(f_name, mag_range, intens_frac, intens_acc_dens_acc,
+                       intens_rej_dens_acc)
 
         # Plot main diagram.
         vor_plot(f_name, x, y, mag, coords_flag, x_mr, y_mr,

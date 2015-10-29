@@ -264,7 +264,7 @@ def main():
     acp_pts, acp_mags, rej_pts, pts_area, pts_vert = get_vor_data(points,
                                                                   mag_mr, vor)
 
-    # Obtain average area *using filtered stars*.
+    # Obtain average area *using magnitude filtered stars*.
     fr_area = ((max(x_mr) - min(x_mr)) * (max(y_mr) - min(y_mr)))
     avr_area = fr_area / len(x_mr)
 
@@ -273,69 +273,74 @@ def main():
     save_to_log(f_name, ("Most prob Voronoi cells area (stars in mag range): "
                          "{:g} {}^2".format(most_prob_a, coords_flag)), 'a')
 
-    # Apply maximum area filter.
-    pts_area_thres, mag_area_thres, vert_area_thres = area_filter(
-        acp_pts, acp_mags, pts_area, pts_vert, most_prob_a, area_frac_range)
-    save_to_log(f_name, "\nStars filtered by area range: {}".format(
-        len(pts_area_thres)), 'a')
+    # # Apply maximum area filter.
+    # pts_area_thres, mag_area_thres, vert_area_thres = area_filter(
+    #     acp_pts, acp_mags, pts_area, pts_vert, most_prob_a, area_frac_range)
+    # save_to_log(f_name, "\nStars filtered by area range: {}".format(
+    #     len(pts_area_thres)), 'a')
 
-    save_to_log(f_name, 'Detect shared vertex', 'a')
-    all_groups = shared_vertex(vert_area_thres)
+    # save_to_log(f_name, 'Detect shared vertex', 'a')
+    # all_groups = shared_vertex(vert_area_thres)
 
-    # This is a costly process.
-    save_to_log(f_name, 'Assign points to groups', 'a')
-    neighbors = group_stars(pts_area_thres, vert_area_thres, all_groups)
-    save_to_log(f_name, 'Groups found: {}'.format(len(neighbors)), 'a')
+    # # This is a costly process.
+    # save_to_log(f_name, 'Assign points to groups', 'a')
+    # neighbors = group_stars(pts_area_thres, vert_area_thres, all_groups)
+    # save_to_log(f_name, 'Groups found: {}'.format(len(neighbors)), 'a')
 
-    # Keep only those groups with a higher number of members than
-    # min_neighbors.
-    pts_neighbors = neighbors_filter(neighbors, m_n)
-    save_to_log(f_name, '\nGroups filtered by number of members: {}'.format(
-        len(pts_neighbors)), 'a')
+    # # Keep only those groups with a higher number of members than
+    # # min_neighbors.
+    # pts_neighbors = neighbors_filter(neighbors, m_n)
+    # save_to_log(f_name, '\nGroups filtered by number of members: {}'.format(
+    #     len(pts_neighbors)), 'a')
 
     # Check if at least one group was defined with the minimum
     # required number of neighbors.
-    # pts_neighbors = [[[0.], [0.]]]
+    pts_neighbors = [[[0.], [0.]]]
     if pts_neighbors:
 
-        # Obtain center and radius for each overdensity identified.
-        cent_rad = get_cent_rad(pts_neighbors)
+        # # Obtain center and radius for each overdensity identified.
+        # cent_rad = get_cent_rad(pts_neighbors)
 
-        # # Load Bica file centers and radii.
-        # com_file = 'bica.dat'
-        # file_data = np.loadtxt(com_file)
-        # i, j, k, q = 0, 1, 2, 3
-        # # Extract coordinates and zip them into lists.
-        # cc_x, cc_y, cr_x, cr_y = zip(*file_data)[i], zip(*file_data)[j], \
-        #     zip(*file_data)[k], zip(*file_data)[q]
-        # # Move center coordinates to new origin.
-        # cc_x = (np.array(cc_x) - ra_cent) * np.cos(np.deg2rad(dec_cent))
-        # cc_y = (np.array(cc_y) - dec_cent)
-        # # Convert RA, DEC longitudes in arcmin to radii in degrees.
-        # cr_x, cr_y = np.array(cr_x) / (60. * 2), np.array(cr_y) / (60. * 2)
-        # cc_r = []
-        # for rx, ry in zip(*[cr_x, cr_y]):
-        #     cc_r.append(max(rx, ry))
-        # # Zip data.
-        # cent_rad = zip(*[cc_x, cc_y, cc_r])
-        # pts_area_thres, mag_area_thres = zip(*[x_mr, y_mr]), mag_mr
+        # Load Bica file centers and radii.
+        com_file = 'bica.dat'
+        file_data = np.loadtxt(com_file)
+        i, j, k, q = 0, 1, 2, 3
+        # Extract coordinates and zip them into lists.
+        cc_x, cc_y, cr_x, cr_y = zip(*file_data)[i], zip(*file_data)[j], \
+            zip(*file_data)[k], zip(*file_data)[q]
+        # Move center coordinates to new origin.
+        cc_x = (np.array(cc_x) - ra_cent) * np.cos(np.deg2rad(dec_cent))
+        cc_y = (np.array(cc_y) - dec_cent)
+        # Convert RA, DEC longitudes in arcmin to radii in degrees.
+        cr_x, cr_y = np.array(cr_x) / (60. * 2), np.array(cr_y) / (60. * 2)
+        cc_r = []
+        for rx, ry in zip(*[cr_x, cr_y]):
+            cc_r.append(max(rx, ry))
+        # Zip data.
+        cent_rad = zip(*[cc_x, cc_y, cc_r])
+        pts_area_thres = zip(*[x_mr, y_mr])
 
+        # Filter/organize groups found by their density, using stars filtered
+        # by magnitude.
         dens_accp_groups, dens_rej_groups = filt_density(
-            fr_area, x_mr, y_mr, cent_rad, dens_frac)
+            fr_area, x_mr, y_mr, mag_mr, cent_rad, dens_frac)
         save_to_log(
             f_name, "\nGroups filtered by density (stars/area): {}".format(
                 len(dens_accp_groups)), 'a')
 
-        intens_accp_groups, intens_rej_groups, intens_area_all = \
-            filt_integ_mag(pts_area_thres, mag_area_thres, dens_accp_groups,
-                           intens_frac)
+        # Filter/organize groups found by their I/A, using stars filtered
+        # by magnitude.
+        intens_acc_dens_acc, intens_acc_dens_rej, intens_rej_dens_acc,\
+            intens_rej_dens_rej = filt_integ_mag(
+                x_mr, y_mr, mag_mr, dens_accp_groups, dens_rej_groups,
+                intens_frac)
         save_to_log(
             f_name, "\nGroups filtered by intensity/area: {}".format(
-                len(intens_accp_groups)), 'a')
+                len(intens_acc_dens_acc[0])), 'a')
 
-        # Write data to file.
-        save_cent_rad(f_name, cent_rad, dens_accp_groups, dens_rej_groups,
-                      intens_accp_groups, intens_rej_groups)
+        # # Write data to file.
+        # save_cent_rad(f_name, cent_rad, dens_accp_groups, dens_rej_groups,
+        #               intens_accp_groups, intens_rej_groups)
 
     else:
         save_to_log(f_name, "No groups with more than {} members found".
@@ -345,7 +350,8 @@ def main():
     all_plots(f_name, mag_range, area_frac_range, x, y, mag,
               coords_flag, x_mr, y_mr, pts_area_filt,
               pts_area_thres, pts_neighbors, intens_frac, dens_frac,
-              intens_area_all, intens_accp_groups, cent_rad)
+              cent_rad, intens_acc_dens_acc, intens_acc_dens_rej,
+              intens_rej_dens_acc, intens_rej_dens_rej)
 
     # Done.
     elapsed = time.time() - start
