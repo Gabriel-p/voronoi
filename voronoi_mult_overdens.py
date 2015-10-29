@@ -3,26 +3,14 @@
 from scipy.spatial import Voronoi
 import time
 import numpy as np
+from functions.percent_done import print_perc
 from functions.get_params_in import get_params_in
-from functions.get_coords import get_coords
+from functions.get_data import get_data
 from functions.get_cent_rad import get_cent_rad
 from functions.filt_density import filt_density
 from functions.integ_mag import filt_integ_mag
 from functions.save_to_file import save_cent_rad, save_to_log
 from functions.make_plots import all_plots
-
-
-def print_perc(i, tot_sols, milestones):
-    '''
-    '''
-    percentage_complete = (100.0 * (i + 1) / tot_sols)
-    while len(milestones) > 0 and \
-            percentage_complete >= milestones[0]:
-        print "    {:>3}%".format(milestones[0])
-        # Remove that milestone from the list.
-        milestones = milestones[1:]
-
-    return milestones
 
 
 def area_of_polygon(points):
@@ -103,131 +91,12 @@ def large_area_filt(pts_area, avr_area):
     return pts_area_filt, most_prob_a
 
 
-def area_filter(acp_pts, acp_mags, pts_area, pts_vert, most_prob_a,
-                area_frac_range):
-    '''
-    Filter *out* those points whose area is *above* a certain fraction of the
-    most probable area value passed.
-
-    http://stackoverflow.com/a/32058576/1391441
-    '''
-
-    pts_thres, mag_thres, vert_thres = [], [], []
-    for i, p in enumerate(acp_pts):
-        # Keep point if its area is below the maximum threshold.
-        if most_prob_a * area_frac_range[0] < pts_area[i] < \
-                most_prob_a * area_frac_range[1]:
-            pts_thres.append(p)
-            mag_thres.append(acp_mags[i])
-            vert_thres.append(pts_vert[i])
-
-    return pts_thres, mag_thres, vert_thres
-
-
-def consolidate(sets):
-    # http://rosettacode.org/wiki/Set_consolidation#Python:_Iterative
-    setlist = [s for s in sets if s]
-
-    tot_sols = len(setlist)
-    milestones = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-
-    for i, s1 in enumerate(setlist):
-        if s1:
-            for s2 in setlist[i+1:]:
-                intersection = s1.intersection(s2)
-                if intersection:
-                    s2.update(s1)
-                    s1.clear()
-                    s1 = s2
-
-        # Print percentage done.
-        milestones = print_perc(i, tot_sols, milestones)
-
-    return [s for s in setlist if s]
-
-
-def wrapper(seqs):
-    consolidated = consolidate(map(set, seqs))
-    groupmap = {x: i for i, seq in enumerate(consolidated) for x in seq}
-
-    output = {}
-    for seq in seqs:
-        target = output.setdefault(groupmap[seq[0]], [])
-        target.append(seq)
-
-    return list(output.values())
-
-
-def shared_vertex(vert_thres):
-    '''
-    Check which of the points that passed the area filter share at least
-    one vertex. If they do, they are considered neighbors and stored in the
-    same list.
-    '''
-    all_groups = wrapper(vert_thres)
-    return all_groups
-
-
-def element_count(p1, p2):
-    '''
-    Count points in nested lists.
-    '''
-    count = 0
-    # For each group defined.
-    for g in p1:
-        # For each point in each group.
-        for _ in g:
-            # For each point above threshold.
-            count += len(p2)
-
-    return count
-
-
-def group_stars(pts_thres, vert_thres, all_groups):
-    '''
-    For each defined group, find the points that correspond to it.
-    '''
-
-    tot_sols = element_count(all_groups, pts_thres)
-    milestones, c = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100], 0
-
-    neighbors = [[] for _ in range(len(all_groups))]
-    # For each group defined.
-    for i, g in enumerate(all_groups):
-        # For each point in each group.
-        for vert_pt in g:
-            # For each point above threshold.
-            for j, p in enumerate(pts_thres):
-                c += 1
-                verts = vert_thres[j]
-                if verts == vert_pt:
-                    neighbors[i].append(p)
-
-                # Print percentage done.
-                milestones = print_perc(c, tot_sols, milestones)
-
-    return neighbors
-
-
-def neighbors_filter(neighbors, min_neighbors):
-    '''
-    Filter the points that passed the area filter, discarding those which
-    have fewer neighbors than the 'min_neighbors' value.
-    '''
-    pts_neighbors = []
-    for g in neighbors:
-        if len(g) > min_neighbors:
-            pts_neighbors.append(zip(*g))
-
-    return pts_neighbors
-
-
 def main():
     start = time.time()
 
     # Read parameters from input file.
-    in_file, in_file_cols, coords_flag, mag_range, area_frac_range, m_n,\
-        intens_frac, dens_frac = get_params_in()
+    in_file, in_file_cols, coords_flag, vor_flag, cr_file_cols, mag_range,\
+        area_frac_range, m_n, intens_frac, dens_frac = get_params_in()
 
     # Each sub-list in 'in_file' is a row of the file.
     f_name = in_file[:-4]
@@ -240,9 +109,9 @@ def main():
         intens_frac), 'a')
     save_to_log(f_name, "Frame's I/A fraction: {}\n".format(dens_frac), 'a')
 
-    # Get points coordinates.
-    x_mr, y_mr, mag_mr, x, y, mag, ra_cent, dec_cent = get_coords(
-        in_file, in_file_cols, mag_range, coords_flag)
+    # Get points coordinates and magnitudes.
+    x_mr, y_mr, mag_mr, x, y, mag, ra_cent, dec_cent = get_data(
+        in_file, in_file_cols, mag_range, coords_flag, vor_flag)
     save_to_log(f_name, 'Photometric data obtained', 'a')
     save_to_log(f_name, 'Total number of stars: {}'.format(len(x)), 'a')
     if coords_flag == 'deg':
@@ -273,79 +142,38 @@ def main():
     save_to_log(f_name, ("Most prob Voronoi cells area (stars in mag range): "
                          "{:g} {}^2".format(most_prob_a, coords_flag)), 'a')
 
-    # # Apply maximum area filter.
-    # pts_area_thres, mag_area_thres, vert_area_thres = area_filter(
-    #     acp_pts, acp_mags, pts_area, pts_vert, most_prob_a, area_frac_range)
-    # save_to_log(f_name, "\nStars filtered by area range: {}".format(
-    #     len(pts_area_thres)), 'a')
+    # Obtain center coordinates and radii either automatically by grouping
+    # neighbor stars, or by reading those values from a file.
+    cent_rad, pts_area_thres, pts_neighbors = get_cent_rad(
+        f_name, coords_flag, cr_file_cols, m_n, vor_flag, ra_cent,
+        dec_cent, acp_pts, acp_mags, pts_area, pts_vert, most_prob_a,
+        area_frac_range)
 
-    # save_to_log(f_name, 'Detect shared vertex', 'a')
-    # all_groups = shared_vertex(vert_area_thres)
+    # Filter/organize groups found by their density, using stars filtered
+    # by magnitude.
+    dens_accp_groups, dens_rej_groups, area_frac_range = filt_density(
+        fr_area, x_mr, y_mr, mag_mr, cent_rad, vor_flag, area_frac_range,
+        dens_frac, most_prob_a)
+    save_to_log(
+        f_name, "\nGroups filtered by density (stars/area): {}".format(
+            len(dens_accp_groups)), 'a')
 
-    # # This is a costly process.
-    # save_to_log(f_name, 'Assign points to groups', 'a')
-    # neighbors = group_stars(pts_area_thres, vert_area_thres, all_groups)
-    # save_to_log(f_name, 'Groups found: {}'.format(len(neighbors)), 'a')
+    # Filter/organize groups found by their I/A, using stars filtered
+    # by magnitude.
+    intens_acc_dens_acc, intens_acc_dens_rej, intens_rej_dens_acc,\
+        intens_rej_dens_rej = filt_integ_mag(
+            x_mr, y_mr, mag_mr, dens_accp_groups, dens_rej_groups,
+            intens_frac)
+    save_to_log(
+        f_name, "\nGroups filtered by intensity/area: {}".format(
+            len(intens_acc_dens_acc[0])), 'a')
 
-    # # Keep only those groups with a higher number of members than
-    # # min_neighbors.
-    # pts_neighbors = neighbors_filter(neighbors, m_n)
-    # save_to_log(f_name, '\nGroups filtered by number of members: {}'.format(
-    #     len(pts_neighbors)), 'a')
+    # Write data to file.
+    save_cent_rad(f_name, cent_rad, intens_acc_dens_acc,
+                  intens_acc_dens_rej, intens_rej_dens_acc,
+                  intens_rej_dens_rej)
 
-    # Check if at least one group was defined with the minimum
-    # required number of neighbors.
-    pts_neighbors = [[[0.], [0.]]]
-    if pts_neighbors:
-
-        # # Obtain center and radius for each overdensity identified.
-        # cent_rad = get_cent_rad(pts_neighbors)
-
-        # Load Bica file centers and radii.
-        com_file = 'bica.dat'
-        file_data = np.loadtxt(com_file)
-        i, j, k, q = 0, 1, 2, 3
-        # Extract coordinates and zip them into lists.
-        cc_x, cc_y, cr_x, cr_y = zip(*file_data)[i], zip(*file_data)[j], \
-            zip(*file_data)[k], zip(*file_data)[q]
-        # Move center coordinates to new origin.
-        cc_x = (np.array(cc_x) - ra_cent) * np.cos(np.deg2rad(dec_cent))
-        cc_y = (np.array(cc_y) - dec_cent)
-        # Convert RA, DEC longitudes in arcmin to radii in degrees.
-        cr_x, cr_y = np.array(cr_x) / (60. * 2), np.array(cr_y) / (60. * 2)
-        cc_r = []
-        for rx, ry in zip(*[cr_x, cr_y]):
-            cc_r.append(max(rx, ry))
-        # Zip data.
-        cent_rad = zip(*[cc_x, cc_y, cc_r])
-        pts_area_thres = zip(*[x_mr, y_mr])
-
-        # Filter/organize groups found by their density, using stars filtered
-        # by magnitude.
-        dens_accp_groups, dens_rej_groups = filt_density(
-            fr_area, x_mr, y_mr, mag_mr, cent_rad, dens_frac)
-        save_to_log(
-            f_name, "\nGroups filtered by density (stars/area): {}".format(
-                len(dens_accp_groups)), 'a')
-
-        # Filter/organize groups found by their I/A, using stars filtered
-        # by magnitude.
-        intens_acc_dens_acc, intens_acc_dens_rej, intens_rej_dens_acc,\
-            intens_rej_dens_rej = filt_integ_mag(
-                x_mr, y_mr, mag_mr, dens_accp_groups, dens_rej_groups,
-                intens_frac)
-        save_to_log(
-            f_name, "\nGroups filtered by intensity/area: {}".format(
-                len(intens_acc_dens_acc[0])), 'a')
-
-        # # Write data to file.
-        # save_cent_rad(f_name, cent_rad, dens_accp_groups, dens_rej_groups,
-        #               intens_accp_groups, intens_rej_groups)
-
-    else:
-        save_to_log(f_name, "No groups with more than {} members found".
-                    format(m_n), 'a')
-
+    # Make plots.
     save_to_log(f_name, '\nPlotting', 'a')
     all_plots(f_name, mag_range, area_frac_range, x, y, mag,
               coords_flag, x_mr, y_mr, pts_area_filt,

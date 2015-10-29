@@ -1,133 +1,192 @@
 
 import numpy as np
-import math
-import random
-
-# See:
-# http://www.nayuki.io/res/smallest-enclosing-circle/smallestenclosingcircle.py
-
-# http://stackoverflow.com/q/27673463/1391441
-
-# Returns the smallest circle that encloses all the given points. Runs in
-# expected O(n) time, randomized.
-# Input: A sequence of pairs of floats or ints, e.g. [(0,5), (3.1,-2.7)].
-# Output: A triple of floats representing a circle.
-# Note: If 0 points are given, None is returned. If 1 point is given, a circle
-# of radius 0 is returned.
-#
+from smallestenclosingcircle import make_circle
+from get_data import get_cents_rad_file
+from save_to_file import save_to_log
+from percent_done import print_perc
 
 
-def _is_in_circle(c, p):
-    _EPSILON = 1e-12
-    return c is not None and math.hypot(p[0] - c[0], p[1] - c[1]) < c[2] +\
-        _EPSILON
-
-
-def _make_diameter(p0, p1):
-    return ((p0[0] + p1[0]) / 2.0, (p0[1] + p1[1]) / 2.0, math.hypot(p0[0] -
-            p1[0], p0[1] - p1[1]) / 2.0)
-
-
-def _cross_product(x0, y0, x1, y1, x2, y2):
+def area_filter(acp_pts, acp_mags, pts_area, pts_vert, most_prob_a,
+                area_frac_range):
     '''
-    Returns twice the signed area of the triangle defined by (x0, y0),
-    (x1, y1), (x2, y2)
+    Filter *out* those points whose area is *above* a certain fraction of the
+    most probable area value passed.
+
+    http://stackoverflow.com/a/32058576/1391441
     '''
-    return (x1 - x0) * (y2 - y0) - (y1 - y0) * (x2 - x0)
+
+    pts_thres, mag_thres, vert_thres = [], [], []
+    for i, p in enumerate(acp_pts):
+        # Keep point if its area is below the maximum threshold.
+        if most_prob_a * area_frac_range[0] < pts_area[i] < \
+                most_prob_a * area_frac_range[1]:
+            pts_thres.append(p)
+            mag_thres.append(acp_mags[i])
+            vert_thres.append(pts_vert[i])
+
+    return pts_thres, mag_thres, vert_thres
 
 
-def _make_circumcircle(p0, p1, p2):
+def consolidate(sets):
+    # http://rosettacode.org/wiki/Set_consolidation#Python:_Iterative
+    setlist = [s for s in sets if s]
+
+    tot_sols = len(setlist)
+    milestones = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+
+    for i, s1 in enumerate(setlist):
+        if s1:
+            for s2 in setlist[i+1:]:
+                intersection = s1.intersection(s2)
+                if intersection:
+                    s2.update(s1)
+                    s1.clear()
+                    s1 = s2
+
+        # Print percentage done.
+        milestones = print_perc(i, tot_sols, milestones)
+
+    return [s for s in setlist if s]
+
+
+def wrapper(seqs):
+    consolidated = consolidate(map(set, seqs))
+    groupmap = {x: i for i, seq in enumerate(consolidated) for x in seq}
+
+    output = {}
+    for seq in seqs:
+        target = output.setdefault(groupmap[seq[0]], [])
+        target.append(seq)
+
+    return list(output.values())
+
+
+def shared_vertex(vert_thres):
     '''
-    Mathematical algorithm from Wikipedia: Circumscribed circle
+    Check which of the points that passed the area filter share at least
+    one vertex. If they do, they are considered neighbors and stored in the
+    same list.
     '''
-    ax = p0[0]
-    ay = p0[1]
-    bx = p1[0]
-    by = p1[1]
-    cx = p2[0]
-    cy = p2[1]
-    d = (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by)) * 2.0
-    if d == 0.0:
-        return None
-    x = ((ax * ax + ay * ay) * (by - cy) + (bx * bx + by * by) *
-         (cy - ay) + (cx * cx + cy * cy) * (ay - by)) / d
-    y = ((ax * ax + ay * ay) * (cx - bx) + (bx * bx + by * by) *
-         (ax - cx) + (cx * cx + cy * cy) * (bx - ax)) / d
-    return (x, y, math.hypot(x - ax, y - ay))
+    all_groups = wrapper(vert_thres)
+    return all_groups
 
 
-def _make_circle_two_points(points, p, q):
+def element_count(p1, p2):
     '''
-    Two boundary points known
+    Count points in nested lists.
     '''
-    diameter = _make_diameter(p, q)
-    if all(_is_in_circle(diameter, r) for r in points):
-        return diameter
+    count = 0
+    # For each group defined.
+    for g in p1:
+        # For each point in each group.
+        for _ in g:
+            # For each point above threshold.
+            count += len(p2)
 
-    left = None
-    right = None
-    for r in points:
-        cross = _cross_product(p[0], p[1], q[0], q[1], r[0], r[1])
-        c = _make_circumcircle(p, q, r)
-        if c is None:
-            continue
-        elif cross > 0.0 and (left is None or _cross_product(p[0], p[1], q[0],
-                              q[1], c[0], c[1]) > _cross_product(p[0], p[1],
-                              q[0], q[1], left[0], left[1])):
-            left = c
-        elif cross < 0.0 and (right is None or _cross_product(p[0], p[1],
-                              q[0], q[1], c[0], c[1]) <
-                              _cross_product(p[0], p[1], q[0], q[1],
-                                             right[0], right[1])):
-            right = c
-    return left if (right is None or
-                    (left is not None and left[2] <= right[2])) else right
+    return count
 
 
-def _make_circle_one_point(points, p):
+def group_stars(pts_thres, vert_thres, all_groups):
     '''
-    One boundary point known
+    For each defined group, find the points that correspond to it.
     '''
-    c = (p[0], p[1], 0.0)
-    for (i, q) in enumerate(points):
-        if not _is_in_circle(c, q):
-            if c[2] == 0.0:
-                c = _make_diameter(p, q)
-            else:
-                c = _make_circle_two_points(points[0: i + 1], p, q)
-    return c
+
+    tot_sols = element_count(all_groups, pts_thres)
+    milestones, c = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100], 0
+
+    neighbors = [[] for _ in range(len(all_groups))]
+    # For each group defined.
+    for i, g in enumerate(all_groups):
+        # For each point in each group.
+        for vert_pt in g:
+            # For each point above threshold.
+            for j, p in enumerate(pts_thres):
+                c += 1
+                verts = vert_thres[j]
+                if verts == vert_pt:
+                    neighbors[i].append(p)
+
+                # Print percentage done.
+                milestones = print_perc(c, tot_sols, milestones)
+
+    return neighbors
 
 
-def make_circle(points):
-    # Convert to float and randomize order
-    shuffled = [(float(p[0]), float(p[1])) for p in points]
-    random.shuffle(shuffled)
+def neighbors_filter(neighbors, min_neighbors):
+    '''
+    Filter the points that passed the area filter, discarding those which
+    have fewer neighbors than the 'min_neighbors' value.
+    '''
+    pts_neighbors = []
+    for g in neighbors:
+        if len(g) > min_neighbors:
+            pts_neighbors.append(zip(*g))
 
-    # Progressively add points to circle or recompute circle
-    c = None
-    for (i, p) in enumerate(shuffled):
-        if c is None or not _is_in_circle(c, p):
-            c = _make_circle_one_point(shuffled[0: i + 1], p)
-    return c
+    return pts_neighbors
 
 
-def get_cent_rad(pts_neighbors):
+def get_cent_rad(f_name, coords_flag, cr_file_cols, m_n, vor_flag, ra_cent,
+                 dec_cent, acp_pts, acp_mags, pts_area, pts_vert, most_prob_a,
+                 area_frac_range):
     '''
     Assign a center and a radius for each overdensity/group identified.
+
+    Use an automatic algorithm based on a Voronoi diagram and grouping neighbor
+    stars, or a file with center coordinates and radii already stored.
     '''
-    cent_rad = []
-    for g in pts_neighbors:
 
-        pts = np.array(zip(*g))
-        mean_pts = np.mean(pts, 0)
+    if vor_flag == 'voronoi':
 
-        # Translate towards origin
-        pts -= mean_pts
-        result = make_circle(pts)
+        # Apply maximum area filter.
+        pts_area_thres, mag_area_thres, vert_area_thres = area_filter(
+            acp_pts, acp_mags, pts_area, pts_vert, most_prob_a,
+            area_frac_range)
+        save_to_log(f_name, "\nStars filtered by area range: {}".format(
+            len(pts_area_thres)), 'a')
 
-        # Move back to correct position.
-        c_r = (result[0] + mean_pts[0], result[1] + mean_pts[1], result[2])
+        save_to_log(f_name, 'Detect shared vertex', 'a')
+        all_groups = shared_vertex(vert_area_thres)
 
-        cent_rad.append([c_r[0], c_r[1], c_r[2]])
+        # This is a costly process.
+        save_to_log(f_name, 'Assign points to groups', 'a')
+        neighbors = group_stars(pts_area_thres, vert_area_thres, all_groups)
+        save_to_log(f_name, 'Groups found: {}'.format(len(neighbors)), 'a')
 
-    return cent_rad
+        # Keep only those groups with a higher number of members than
+        # min_neighbors.
+        pts_neighbors = neighbors_filter(neighbors, m_n)
+        save_to_log(f_name,
+                    '\nGroups filtered by number of members: {}'.format(
+                        len(pts_neighbors)), 'a')
+
+        # Check if at least one group was defined with the minimum
+        # required number of neighbors.
+        if pts_neighbors:
+            # Obtain center and radius for each overdensity identified.
+            cent_rad = []
+            for g in pts_neighbors:
+
+                pts = np.array(zip(*g))
+                mean_pts = np.mean(pts, 0)
+
+                # Translate towards origin
+                pts -= mean_pts
+                result = make_circle(pts)
+
+                # Move back to correct position.
+                c_r = (result[0] + mean_pts[0], result[1] + mean_pts[1],
+                       result[2])
+
+                cent_rad.append([c_r[0], c_r[1], c_r[2]])
+        else:
+            cent_rad = []
+            save_to_log(f_name, "No groups with more than {} members found".
+                        format(m_n), 'a')
+
+    else:
+        # Get data from file.
+        cent_rad = get_cents_rad_file(coords_flag, vor_flag, cr_file_cols,
+                                      ra_cent, dec_cent)
+        pts_area_thres, pts_neighbors = [[0., 0.], [0., 0.]], [[[0.], [0.]]]
+
+    return cent_rad, pts_area_thres, pts_neighbors

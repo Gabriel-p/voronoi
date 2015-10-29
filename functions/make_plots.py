@@ -45,14 +45,14 @@ def area_hist(f_name, mag_range, area_frac_range, pts_area_filt):
     most_prob_a = (5. / 7.) * pts_area_f_mean
     # Vertical lines.
     plt.axvline(x=(5. / 7.), color='k', ls='--', lw=2,
-                label='Most prob polygon area ({:.2f} u^2)'.format(
+                label='Most prob polygon area ({:.2E} u^2)'.format(
                     most_prob_a))
     a_f_min, a_f_max = [round(_, 2) for _ in area_frac_range]
     plt.axvline(x=a_f_min * (5. / 7.), color='r', ls='--', lw=2,
-                label='Min area fraction: {:.2f} ({:.2f} u^2)'.format(
+                label='Min area fraction: {:.2f} ({:.2E} u^2)'.format(
                 a_f_min, a_f_min * most_prob_a))
     plt.axvline(x=a_f_max * (5. / 7.), color='r', ls='--', lw=2,
-                label='Max area fraction: {:.2f} ({:.2f} u^2)'.format(
+                label='Max area fraction: {:.2f} ({:.2E} u^2)'.format(
                 a_f_max, a_f_max * most_prob_a))
     # Normalized histogram.
     weights = np.ones_like(frac_area)/len(frac_area)
@@ -165,16 +165,21 @@ def intensity_plot(f_name, mag_range, intens_frac, intens_acc_dens_acc,
         ord_za, ord_xa, ord_ya = map(list, zip(*sorted(zip(z_a, x_a, y_a),
                                      reverse=False)))
     else:
-        ord_za, ord_xa, ord_ya = [0.], [0.], [0.]
+        ord_za, ord_xa, ord_ya = [], [], []
     # Rejected clusters.
     if intens_rej_dens_acc[0]:
-        x_r, y_r, z_r = zip(*intens_rej_dens_acc[0])[2],\
-            intens_rej_dens_acc[1], intens_rej_dens_acc[3]
+        x_r, y_r, z_r = map(list, (zip(*intens_rej_dens_acc[0])[2],
+                            intens_rej_dens_acc[1], intens_rej_dens_acc[3]))
     else:
-        x_r, y_r, z_r = [0.], [0.], [0.]
+        x_r, y_r, z_r = [], [], []
     # Limits.
-    max_x, max_y = max(ord_xa + x_r), max(ord_ya + y_r)
-    v_min, v_max = 0, max(ord_za + z_r)
+    try:
+        max_x, max_y = max(ord_xa + x_r), max(ord_ya + y_r)
+        v_max = max(ord_za + z_r)
+    except:
+        # If all lists are empty, set values to 0.
+        max_x, max_y, v_max = 0., 0., 0.
+    v_min = 0.
     # Plot.
     plt.xlim(0., max_x + max_x * 0.1)
     plt.ylim(-1, max_y + max_y * 0.1)
@@ -255,8 +260,8 @@ def dens_map(x_data, y_data, new_cent_rad):
     return h_g, dens_cent_rad
 
 
-def vor_plot(f_name, x, y, mag, coords_flag, x_mr, y_mr, pts_thres,
-             pts_neighbors, intens_accp_groups, cent_rad):
+def vor_plot(f_name, x, y, mag, coords_flag, x_mr, y_mr, pts_area_thres,
+             pts_neighbors, cent_rad, intens_acc_dens_acc):
     # figure size.
     fig = plt.figure(figsize=(40, 20))
     gs = gridspec.GridSpec(2, 4)
@@ -289,7 +294,7 @@ def vor_plot(f_name, x, y, mag, coords_flag, x_mr, y_mr, pts_thres,
     plt.scatter(x_mr, y_mr, marker='o', s=3, lw=0.2, facecolor='none',
                 edgecolor='b', label='Mag filter')
     # Points that passed the area threshold filter.
-    x_t, y_t = zip(*pts_thres)
+    x_t, y_t = zip(*pts_area_thres)
     plt.scatter(x_t, y_t, marker='o', s=3, lw=0.2, facecolor='none',
                 edgecolor='g', label='Area filter')
     # Neighbor points.
@@ -305,14 +310,14 @@ def vor_plot(f_name, x, y, mag, coords_flag, x_mr, y_mr, pts_thres,
     # Set the alpha value of the legend.
     leg.get_frame().set_alpha(0.85)
 
-    # Print radii for merged groups.
+    # Print radii for all detected groups above the minimum neighbors limit.
     for c_r in cent_rad:
         circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='b', ls='dashed',
                             fill=False, lw=1.2)
         fig.gca().add_artist(circle)
 
     # Print radii for final groups.
-    for c_r in intens_accp_groups:
+    for c_r in intens_acc_dens_acc[0]:
         circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='r',
                             fill=False, lw=1.2)
         fig.gca().add_artist(circle)
@@ -341,7 +346,7 @@ def vor_plot(f_name, x, y, mag, coords_flag, x_mr, y_mr, pts_thres,
     ax1 = plt.subplot(gs[0, 2])
     ax1.xaxis.set_visible(False)
     ax1.yaxis.set_visible(False)
-    h_g, dens_cent_rad = dens_map(x, y, intens_accp_groups)
+    h_g, dens_cent_rad = dens_map(x, y, intens_acc_dens_acc[0])
     ax1.imshow(h_g.transpose(), origin='lower', cmap=cm, aspect='auto')
     # Print radii
     for c_r in dens_cent_rad:
@@ -361,7 +366,7 @@ def vor_plot(f_name, x, y, mag, coords_flag, x_mr, y_mr, pts_thres,
     # Add extreme points so aspect is the same for all density maps.
     x_mr = x_mr + [min(x), max(x)]
     y_mr = y_mr + [min(y), max(y)]
-    h_g, dens_cent_rad = dens_map(x_mr, y_mr, intens_accp_groups)
+    h_g, dens_cent_rad = dens_map(x_mr, y_mr, intens_acc_dens_acc[0])
     ax2.imshow(h_g.transpose(), origin='lower', cmap=cm, aspect='auto')
     # Print radii
     for c_r in dens_cent_rad:
@@ -381,7 +386,7 @@ def vor_plot(f_name, x, y, mag, coords_flag, x_mr, y_mr, pts_thres,
     # Add extreme points so aspect is the same for all density maps.
     x_t = list(x_t) + [min(x), max(x)]
     y_t = list(y_t) + [min(y), max(y)]
-    h_g, dens_cent_rad = dens_map(x_t, y_t, intens_accp_groups)
+    h_g, dens_cent_rad = dens_map(x_t, y_t, intens_acc_dens_acc[0])
     ax3.imshow(h_g.transpose(), origin='lower', cmap=cm, aspect='auto')
     # Print radii
     for c_r in dens_cent_rad:
@@ -402,7 +407,7 @@ def vor_plot(f_name, x, y, mag, coords_flag, x_mr, y_mr, pts_thres,
     # Add extreme points so aspect is the same for all density maps.
     x_n = list(x_n) + [min(x), max(x)]
     y_n = list(y_n) + [min(y), max(y)]
-    h_g, dens_cent_rad = dens_map(x_n, y_n, intens_accp_groups)
+    h_g, dens_cent_rad = dens_map(x_n, y_n, intens_acc_dens_acc[0])
     ax4.imshow(h_g.transpose(), origin='lower', cmap=cm, aspect='auto')
     # Print radii
     for c_r in dens_cent_rad:
@@ -442,4 +447,4 @@ def all_plots(f_name, mag_range, area_frac_range, x, y, mag,
 
         # Plot main diagram.
         vor_plot(f_name, x, y, mag, coords_flag, x_mr, y_mr,
-                 pts_area_thres, pts_neighbors, intens_accp_groups, cent_rad)
+                 pts_area_thres, pts_neighbors, cent_rad, intens_acc_dens_acc)

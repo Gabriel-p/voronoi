@@ -11,12 +11,17 @@ def get_params_in():
                 reader = line.split()
 
                 # Input file's name.
-                if reader[0] == 'FN':
+                if reader[0] == 'IN':
                     in_file = str(reader[1])
                 # Input file's data columns.
-                if reader[0] == 'DC':
+                elif reader[0] == 'IC':
                     in_file_cols = map(int, reader[1:-1])
                     coords_flag = str(reader[-1])
+
+                elif reader[0] == 'CN':
+                    vor_flag = str(reader[1])
+                elif reader[0] == 'CC':
+                    cr_file_cols = map(int, reader[1:])
 
                 # Magnitude range.
                 elif reader[0] == 'MR':
@@ -38,5 +43,5 @@ def get_params_in():
                 elif reader[0] == 'FD':
                     dens_frac = float(reader[1])
 
-    return in_file, in_file_cols, coords_flag, mag_range, area_frac_range,\
-        min_neighbors, intens_frac, dens_frac
+    return in_file, in_file_cols, coords_flag, vor_flag, cr_file_cols,\
+        mag_range, area_frac_range, min_neighbors, intens_frac, dens_frac

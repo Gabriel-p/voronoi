@@ -1,7 +1,7 @@
 
 
-def save_cent_rad(f_name, cent_rad, dens_accp_groups, dens_rej_groups,
-                  intens_accp_groups, intens_rej_groups):
+def save_cent_rad(f_name, cent_rad, intens_acc_dens_acc, intens_acc_dens_rej,
+                  intens_rej_dens_acc, intens_rej_dens_rej):
     '''
     Save center and radius data to file for each parameter value processed.
     '''
@@ -15,20 +15,20 @@ def save_cent_rad(f_name, cent_rad, dens_accp_groups, dens_rej_groups,
         for l in cent_rad:
             f.write("{:<10.4f}{:>10.4f}{:>10.4f}\n".format(*l))
 
-        f.write("#\n#Groups with accepted density values.\n")
-        for l in dens_accp_groups:
-            f.write("{:<10.4f}{:>10.4f}{:>10.4f}\n".format(*l[:-1]))
-
-        f.write("#\n#Groups with rejected density values.\n")
-        for l in dens_rej_groups:
-            f.write("{:<10.4f}{:>10.4f}{:>10.4f}\n".format(*l[:-1]))
-
-        f.write("#\n#Groups with accepted intensity/area values.\n")
-        for l in intens_accp_groups:
+        f.write("#\n#Groups with accepted density + I/A values.\n")
+        for l in intens_acc_dens_acc[0]:
             f.write("{:<10.4f}{:>10.4f}{:>10.4f}\n".format(*l))
 
-        f.write("#\n#Groups with rejected intensity/area values.\n")
-        for l in intens_rej_groups:
+        f.write("#\n#Groups with accepted density + rejected I/A values.\n")
+        for l in intens_rej_dens_acc[0]:
+            f.write("{:<10.4f}{:>10.4f}{:>10.4f}\n".format(*l))
+
+        f.write("#\n#Groups with rejected density + accepted I/A values.\n")
+        for l in intens_acc_dens_rej[0]:
+            f.write("{:<10.4f}{:>10.4f}{:>10.4f}\n".format(*l))
+
+        f.write("#\n#Groups with rejected density + I/A values.\n")
+        for l in intens_rej_dens_rej[0]:
             f.write("{:<10.4f}{:>10.4f}{:>10.4f}\n".format(*l))
 
 
