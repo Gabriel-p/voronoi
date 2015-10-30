@@ -9,7 +9,7 @@ def save_plot(f_name, fig_id, fig):
     Save output png file.
     '''
     fig.tight_layout()
-    fig_name = 'out_fig_dat/' + f_name + '_' + fig_id + '.png'
+    fig_name = '../out_fig_dat/' + f_name + '_' + fig_id + '.png'
     plt.savefig(fig_name, dpi=300)
 
 
@@ -80,7 +80,7 @@ def make_plot(x, y, mag, data1, data2):
 
 
 # Load all data.
-dat_file = 'junk_psf.dat'
+dat_file = '../junk_psf.dat'
 file_data = np.loadtxt(dat_file)
 i, j, k = 0, 1, 8
 print 'All stars: {}'.format(len(file_data))
@@ -110,7 +110,7 @@ i, j, k = 4, 3, 5
 c_x, c_y, r = [0.], [0.], [0.]
 
 # Load BIca centers and radii.
-com_file = 'bica.dat'
+com_file = '../cent_rads.dat'
 file_data = np.loadtxt(com_file)
 i, j, k, q = 0, 1, 2, 3
 # Extract coordinates and zip them into lists.

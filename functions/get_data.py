@@ -47,7 +47,7 @@ def get_data(in_file, in_file_cols, mag_range, coords_flag, vor_flag):
         N = 10000
         x = np.random.uniform(low=0., high=1000., size=(N))
         y = np.random.uniform(low=0., high=1000., size=(N))
-        mag = np.random.uniform(low=10., high=24., size=(N))
+        mag = np.random.uniform(low=10., high=22., size=(N))
     else:
         # Each sub-list in 'in_file' is a row of the file.
         file_data = np.loadtxt(in_file)

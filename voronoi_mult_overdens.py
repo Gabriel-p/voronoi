@@ -77,18 +77,17 @@ def large_area_filt(pts_area, avr_area):
     '''
     Filter out polygons located at the borders of the frame with very large
     area values.
-    Find most probable polygon area for the Voronoi cells of the Poisson
-    distribution.
+    Find mean polygon area for the Voronoi cells of the Poisson distribution.
     '''
     pts_area_filt = []
     for _ in pts_area:
         if _ < (5 * avr_area):
             pts_area_filt.append(_)
 
-    # Calculate most probable area for the Voronoi cells.
-    most_prob_a = (5. / 7.) * np.mean(pts_area_filt)
+    # Calculate mean area for all the Voronoi cells.
+    mean_filt_area = np.mean(pts_area_filt)
 
-    return pts_area_filt, most_prob_a
+    return pts_area_filt, mean_filt_area
 
 
 def main():
@@ -96,15 +95,16 @@ def main():
 
     # Read parameters from input file.
     in_file, in_file_cols, coords_flag, vor_flag, cr_file_cols, mag_range,\
-        area_frac_range, m_n, intens_frac, dens_frac = get_params_in()
+        area_frac_range, m_m_n, intens_frac, dens_frac = get_params_in()
 
     # Each sub-list in 'in_file' is a row of the file.
     f_name = in_file[:-4]
     # Create log file.
     save_to_log(f_name, 'Processing file: {}'.format(f_name), 'w')
     save_to_log(f_name, 'Mag range: {}'.format(mag_range), 'a')
-    save_to_log(f_name, 'Area range: {}'.format(area_frac_range), 'a')
-    save_to_log(f_name, 'Minimum neighbors: {}'.format(m_n), 'a')
+    if vor_flag == 'voronoi':
+        save_to_log(f_name, 'Area range: {}'.format(area_frac_range), 'a')
+    save_to_log(f_name, 'Min/max neighbors: {}'.format(m_m_n), 'a')
     save_to_log(f_name, "Frame's density fraction: {}".format(
         intens_frac), 'a')
     save_to_log(f_name, "Frame's I/A fraction: {}\n".format(dens_frac), 'a')
@@ -138,22 +138,24 @@ def main():
     avr_area = fr_area / len(x_mr)
 
     # Filter out large area values for border polygons.
-    pts_area_filt, most_prob_a = large_area_filt(pts_area, avr_area)
-    save_to_log(f_name, ("Most prob Voronoi cells area (stars in mag range): "
-                         "{:g} {}^2".format(most_prob_a, coords_flag)), 'a')
+    pts_area_filt, mean_filt_area = large_area_filt(pts_area, avr_area)
+    save_to_log(f_name, ("Mean Voronoi cells area (stars in mag range): "
+                         "{:g} {}^2".format(mean_filt_area, coords_flag)), 'a')
 
     # Obtain center coordinates and radii either automatically by grouping
     # neighbor stars, or by reading those values from a file.
-    cent_rad, pts_area_thres, pts_neighbors = get_cent_rad(
-        f_name, coords_flag, cr_file_cols, m_n, vor_flag, ra_cent,
-        dec_cent, acp_pts, acp_mags, pts_area, pts_vert, most_prob_a,
-        area_frac_range)
+    # This function applies the area and neighbors filters.
+    cent_rad, pts_area_thres, mag_area_thres, pts_neighbors,\
+        mags_neighbors = get_cent_rad(
+            f_name, coords_flag, cr_file_cols, m_m_n, vor_flag, ra_cent,
+            dec_cent, acp_pts, acp_mags, pts_area, pts_vert, mean_filt_area,
+            area_frac_range)
 
     # Filter/organize groups found by their density, using stars filtered
     # by magnitude.
     dens_accp_groups, dens_rej_groups, area_frac_range = filt_density(
-        fr_area, x_mr, y_mr, mag_mr, cent_rad, vor_flag, area_frac_range,
-        dens_frac, most_prob_a)
+        f_name, fr_area, x_mr, y_mr, mag_mr, cent_rad, vor_flag,
+        area_frac_range, dens_frac, mean_filt_area)
     save_to_log(
         f_name, "\nGroups filtered by density (stars/area): {}".format(
             len(dens_accp_groups)), 'a')
@@ -172,14 +174,15 @@ def main():
     save_cent_rad(f_name, cent_rad, intens_acc_dens_acc,
                   intens_acc_dens_rej, intens_rej_dens_acc,
                   intens_rej_dens_rej)
+    save_to_log(f_name, "\nData saved to {}.out file".format(f_name), 'a')
 
     # Make plots.
     save_to_log(f_name, '\nPlotting', 'a')
     all_plots(f_name, mag_range, area_frac_range, x, y, mag,
-              coords_flag, x_mr, y_mr, pts_area_filt,
-              pts_area_thres, pts_neighbors, intens_frac, dens_frac,
-              cent_rad, intens_acc_dens_acc, intens_acc_dens_rej,
-              intens_rej_dens_acc, intens_rej_dens_rej)
+              coords_flag, vor_flag, x_mr, y_mr, mag_mr, pts_area_filt,
+              pts_area_thres, mag_area_thres, pts_neighbors, mags_neighbors,
+              intens_frac, dens_frac, cent_rad, intens_acc_dens_acc,
+              intens_acc_dens_rej, intens_rej_dens_acc, intens_rej_dens_rej)
 
     # Done.
     elapsed = time.time() - start

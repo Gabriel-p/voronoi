@@ -9,7 +9,7 @@ def in_radius(c_x, c_y, r, x, y):
 
 
 def filt_density(f_name, fr_area, x_mr, y_mr, mag_mr, cent_rad, vor_flag,
-                 area_frac_range, dens_frac, most_prob_a):
+                 area_frac_range, dens_frac, mean_filt_area):
     '''
     Apply density filter.
     '''
@@ -41,16 +41,16 @@ def filt_density(f_name, fr_area, x_mr, y_mr, mag_mr, cent_rad, vor_flag,
             dens_rej_groups.append([c_x, c_y, r, clust_dens, clust_mags])
 
     # If the center coords and radii were read from file, obtain the min and
-    # max fraction of most probable Voronoi area for these clusters.
+    # max fraction of mean Voronoi area for these clusters.
     if vor_flag != 'voronoi':
         all_fracs = []
-        # Obtain, for each accepted cluster, its area/N divided by the most
-        # probable Voronoi area value.
+        # Obtain, for each accepted cluster, its area/N divided by the mean
+        # Voronoi area value.
         for g in dens_accp_groups:
             cl_dens = (1. / fr_dens_area) * (1. / g[3])
-            all_fracs.append(cl_dens / most_prob_a)
+            all_fracs.append(cl_dens / mean_filt_area)
         area_frac_range = [min(all_fracs), max(all_fracs)]
-        save_to_log(f_name, 'Obtained area range: {}'.format(area_frac_range),
-                    'a')
+        save_to_log(f_name, 'Obtained area range: [{:.2f}, {:.2f}]'.format(
+            *area_frac_range), 'a')
 
     return dens_accp_groups, dens_rej_groups, area_frac_range

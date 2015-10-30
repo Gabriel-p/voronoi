@@ -33,7 +33,7 @@ def get_params_in():
 
                 # Minimum neighbors.
                 elif reader[0] == 'MN':
-                    min_neighbors = int(reader[1])
+                    min_max_neighbors = map(int, reader[1:])
 
                 # Fraction of frame's intensity/area.
                 elif reader[0] == 'FI':
@@ -44,4 +44,4 @@ def get_params_in():
                     dens_frac = float(reader[1])
 
     return in_file, in_file_cols, coords_flag, vor_flag, cr_file_cols,\
-        mag_range, area_frac_range, min_neighbors, intens_frac, dens_frac
+        mag_range, area_frac_range, min_max_neighbors, intens_frac, dens_frac

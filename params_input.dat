@@ -4,8 +4,7 @@
 
 # Name of input file.
 #
-#FN random.dat
-IN junk_psf.dat
+IN random.dat
 
 # Data columns for input file.
 #
@@ -19,7 +18,7 @@ IC  0   1    8       deg
 #
 #   name/voronoi
 #
-CN  cent_rads.dat
+CN  voronoi
 
 # Data columns for center+radii file (if used). The same coordinates as those
 # used in the data file are assumed.
@@ -33,31 +32,35 @@ CN  cent_rads.dat
 #
 CC         0            1           2          3
 
-# Ranges are defined as: [min_mag, max_mag), i.e. the maximum value is excluded.
-
-# Magnitude range.
+# Magnitude range. Range is defined as: [min_mag, max_mag), i.e. the maximum
+# value is excluded.
 #
 #    min   max
 #
-MR     1   20.
+MR     1   19.5
 
-# Area range (fraction of most probable Voronoi polygon area). If a file with
-# center coordinates and radii is used rather than automatically obtaining
-# overdensities using the Voronoi-based algorithm, these two values will be
-# calculated rather than read from this file.
+# Area range given as fractions of the mean Voronoi polygon area.
+#
+# If a file with center coordinates and radii is used rather than automatically
+# obtaining overdensities using the Voronoi-based algorithm, these two values
+# will be calculated rather than read from this file.
 #
 #    min   max
 #
-MA   0.5    0.75
+MA   0.3    0.7
 
-# Minimum number of neighbors (single integer).
+# Min/max number of neighbors (integers). Groups detected with a number of
+# members outside this range, will be discarded.
 #
-MN  5
+#    min   max
+#
+MN    10    300
 
-# Fraction of frame's density (stars per area unit).
+# Minimum fraction of frame's density (number of stars in cluster per area
+# unit).
 #
 FD  1.
 
-# Fraction of frame's intensity per area unit.
+# Minimum fraction of frame's I/A (cluster intensity per area unit).
 #
 FI  1.
