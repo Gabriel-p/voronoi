@@ -108,8 +108,7 @@ def dens_vs_intens_plot(f_name, mag_range, dens_frac, intens_frac,
     # Set grid
     plt.grid(b=True, which='major', color='gray', linestyle='-', zorder=1)
     plt.grid(b=True, which='minor', color='gray', linestyle='-', zorder=1)
-    plt.axhline(y=1., color='goldenrod', ls='--', lw=2,
-                label='(N in frame) / area')
+    plt.axhline(y=1., color='k', ls='--', lw=2, label='(N in frame) / area')
     plt.axvline(x=1., color='b', ls='--', lw=2,
                 label="(Frame's intensity) / area")
     # Scatter points.
@@ -119,7 +118,7 @@ def dens_vs_intens_plot(f_name, mag_range, dens_frac, intens_frac,
                 label='I/A accp, Dens rej ({})'.format(len(x_ar)), zorder=4)
     plt.scatter(x_ra, y_ra, c='m', marker='o', lw=0.2, s=50,
                 label='Dens accp, I/A rej ({})'.format(len(x_ra)), zorder=4)
-    plt.scatter(x_rr, y_rr, c='r', marker='o', lw=0.2, s=50,
+    plt.scatter(x_rr, y_rr, c='#ffa500', marker='o', lw=0.2, s=50,
                 label='Dens + I/A rej ({})'.format(len(x_rr)), zorder=4)
     # Add text box.
     text = '     Mag range:\n{} <= mag < {}'.format(*mag_range)
@@ -150,7 +149,7 @@ def intensity_plot(f_name, mag_range, intens_frac, intens_acc_dens_acc,
                 label='(Minimum intensity) / area = {}'.format(intens_frac))
     # Normalized histogram.
     intens_area = intens_acc_dens_acc[3] + intens_rej_dens_acc[3]
-    max_val = max(intens_area)
+    max_val = min(50., max(intens_area))
     weights = np.ones_like(intens_area)/len(intens_area)
     plt.hist(intens_area, color='#C6D8E5', bins=50, range=[0., max_val],
              weights=weights, normed=True)
@@ -273,8 +272,10 @@ def vor_plot(f_name, x, y, mag, coords_flag, vor_flag, x_mr, y_mr, mag_mr,
              cent_rad, intens_acc_dens_acc,
              intens_acc_dens_rej, intens_rej_dens_acc, intens_rej_dens_rej):
     # figure size.
-    fig = plt.figure(figsize=(40, 20))
-    gs = gridspec.GridSpec(2, 4)
+    # fig = plt.figure(figsize=(40, 20))
+    # gs = gridspec.GridSpec(2, 4)
+    fig = plt.figure(figsize=(20, 20))
+    gs = gridspec.GridSpec(2, 2)
 
     ax = plt.subplot(gs[0:2, 0:2])
     # plt.gca().set_aspect('equal')
@@ -312,7 +313,7 @@ def vor_plot(f_name, x, y, mag, coords_flag, vor_flag, x_mr, y_mr, mag_mr,
         x_t, y_t = zip(*pts_area_thres)
         st_sizes_arr = star_size(mag_area_thres, min_mag)
         plt.scatter(x_t, y_t, marker='o', s=st_sizes_arr, lw=0.3,
-                    facecolor='none', edgecolor='gold', label='Area filter')
+                    facecolor='none', edgecolor='r', label='Area filter')
         # Neighbor points.
         x_n, y_n = [], []
         for g in pts_neighbors:
@@ -350,7 +351,7 @@ def vor_plot(f_name, x, y, mag, coords_flag, vor_flag, x_mr, y_mr, mag_mr,
         fig.gca().add_artist(circle)
     # Print radii for dens+I/A rejected groups.
     for c_r in intens_rej_dens_rej[0]:
-        circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='r',
+        circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='#ffa500',
                             fill=False, lw=1.2)
         fig.gca().add_artist(circle)
 
@@ -372,87 +373,88 @@ def vor_plot(f_name, x, y, mag, coords_flag, vor_flag, x_mr, y_mr, mag_mr,
     # x, y = zip(*pts_thres)
     # plt.scatter(x, y, s=30, c='b', marker='o')
 
-    cm = plt.cm.gist_earth_r
+    # Plot density maps.
+    # cm = plt.cm.gist_earth_r
 
-    # All stars density map.
-    ax1 = plt.subplot(gs[0, 2])
-    ax1.xaxis.set_visible(False)
-    ax1.yaxis.set_visible(False)
-    h_g, dens_cent_rad = dens_map(x, y, intens_acc_dens_acc[0])
-    ax1.imshow(h_g.transpose(), origin='lower', cmap=cm, aspect='auto')
-    # Print radii
-    for c_r in dens_cent_rad:
-        circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='r', lw=1.5,
-                            fill=False)
-        fig.gca().add_artist(circle)
-    # Add text box.
-    text = '1- All stars'
-    ob = offsetbox.AnchoredText(text, pad=0.5, loc=1, prop=dict(size=10))
-    ob.patch.set(alpha=0.5)
-    ax1.add_artist(ob)
+    # # All stars density map.
+    # ax1 = plt.subplot(gs[0, 2])
+    # ax1.xaxis.set_visible(False)
+    # ax1.yaxis.set_visible(False)
+    # h_g, dens_cent_rad = dens_map(x, y, intens_acc_dens_acc[0])
+    # ax1.imshow(h_g.transpose(), origin='lower', cmap=cm, aspect='auto')
+    # # Print radii
+    # for c_r in dens_cent_rad:
+    #     circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='r', lw=1.5,
+    #                         fill=False)
+    #     fig.gca().add_artist(circle)
+    # # Add text box.
+    # text = '1- All stars'
+    # ob = offsetbox.AnchoredText(text, pad=0.5, loc=1, prop=dict(size=10))
+    # ob.patch.set(alpha=0.5)
+    # ax1.add_artist(ob)
 
-    # Magnitude filtered stars density map.
-    ax2 = plt.subplot(gs[0, 3])
-    ax2.xaxis.set_visible(False)
-    ax2.yaxis.set_visible(False)
-    # Add extreme points so aspect is the same for all density maps.
-    x_mr = x_mr + [min(x), max(x)]
-    y_mr = y_mr + [min(y), max(y)]
-    h_g, dens_cent_rad = dens_map(x_mr, y_mr, intens_acc_dens_acc[0])
-    ax2.imshow(h_g.transpose(), origin='lower', cmap=cm, aspect='auto')
-    # Print radii
-    for c_r in dens_cent_rad:
-        circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='r', lw=1.5,
-                            fill=False)
-        fig.gca().add_artist(circle)
-    # Add text box.
-    text = '2- Magnitude filter'
-    ob = offsetbox.AnchoredText(text, pad=0.5, loc=1, prop=dict(size=10))
-    ob.patch.set(alpha=0.5)
-    ax2.add_artist(ob)
+    # # Magnitude filtered stars density map.
+    # ax2 = plt.subplot(gs[0, 3])
+    # ax2.xaxis.set_visible(False)
+    # ax2.yaxis.set_visible(False)
+    # # Add extreme points so aspect is the same for all density maps.
+    # x_mr = x_mr + [min(x), max(x)]
+    # y_mr = y_mr + [min(y), max(y)]
+    # h_g, dens_cent_rad = dens_map(x_mr, y_mr, intens_acc_dens_acc[0])
+    # ax2.imshow(h_g.transpose(), origin='lower', cmap=cm, aspect='auto')
+    # # Print radii
+    # for c_r in dens_cent_rad:
+    #     circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='r', lw=1.5,
+    #                         fill=False)
+    #     fig.gca().add_artist(circle)
+    # # Add text box.
+    # text = '2- Magnitude filter'
+    # ob = offsetbox.AnchoredText(text, pad=0.5, loc=1, prop=dict(size=10))
+    # ob.patch.set(alpha=0.5)
+    # ax2.add_artist(ob)
 
-    # Only plot if these points were obtained.
-    if vor_flag == 'voronoi':
-        # Area threshold filtered stars density map.
-        ax3 = plt.subplot(gs[1, 2])
-        ax3.xaxis.set_visible(False)
-        ax3.yaxis.set_visible(False)
-        # Add extreme points so aspect is the same for all density maps.
-        x_t = list(x_t) + [min(x), max(x)]
-        y_t = list(y_t) + [min(y), max(y)]
-        h_g, dens_cent_rad = dens_map(x_t, y_t, intens_acc_dens_acc[0])
-        ax3.imshow(h_g.transpose(), origin='lower', cmap=cm, aspect='auto')
-        # Print radii
-        for c_r in dens_cent_rad:
-            circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='r', lw=1.5,
-                                fill=False)
-            fig.gca().add_artist(circle)
-        # Add text box.
-        text = '3- Area filter'
-        ob = offsetbox.AnchoredText(text, pad=0.5, loc=1, prop=dict(size=10))
-        ob.patch.set(alpha=0.5)
-        ax3.add_artist(ob)
+    # # Only plot if these points were obtained.
+    # if vor_flag == 'voronoi':
+    #     # Area threshold filtered stars density map.
+    #     ax3 = plt.subplot(gs[1, 2])
+    #     ax3.xaxis.set_visible(False)
+    #     ax3.yaxis.set_visible(False)
+    #     # Add extreme points so aspect is the same for all density maps.
+    #     x_t = list(x_t) + [min(x), max(x)]
+    #     y_t = list(y_t) + [min(y), max(y)]
+    #     h_g, dens_cent_rad = dens_map(x_t, y_t, intens_acc_dens_acc[0])
+    #     ax3.imshow(h_g.transpose(), origin='lower', cmap=cm, aspect='auto')
+    #     # Print radii
+    #     for c_r in dens_cent_rad:
+    #         circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='r', lw=1.5,
+    #                             fill=False)
+    #         fig.gca().add_artist(circle)
+    #     # Add text box.
+    #     text = '3- Area filter'
+    #     ob = offsetbox.AnchoredText(text, pad=0.5, loc=1, prop=dict(size=10))
+    #     ob.patch.set(alpha=0.5)
+    #     ax3.add_artist(ob)
 
-        # Neighbors stars density map.
-        ax4 = plt.subplot(gs[1, 3])
-        # ax4.set_aspect(aspect=1)
-        ax4.xaxis.set_visible(False)
-        ax4.yaxis.set_visible(False)
-        # Add extreme points so aspect is the same for all density maps.
-        x_n = list(x_n) + [min(x), max(x)]
-        y_n = list(y_n) + [min(y), max(y)]
-        h_g, dens_cent_rad = dens_map(x_n, y_n, intens_acc_dens_acc[0])
-        ax4.imshow(h_g.transpose(), origin='lower', cmap=cm, aspect='auto')
-        # Print radii
-        for c_r in dens_cent_rad:
-            circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='r', lw=1.5,
-                                fill=False)
-            fig.gca().add_artist(circle)
-        # Add text box.
-        text = '4- Neighbor stars'
-        ob = offsetbox.AnchoredText(text, pad=0.5, loc=1, prop=dict(size=10))
-        ob.patch.set(alpha=0.5)
-        ax4.add_artist(ob)
+    #     # Neighbors stars density map.
+    #     ax4 = plt.subplot(gs[1, 3])
+    #     # ax4.set_aspect(aspect=1)
+    #     ax4.xaxis.set_visible(False)
+    #     ax4.yaxis.set_visible(False)
+    #     # Add extreme points so aspect is the same for all density maps.
+    #     x_n = list(x_n) + [min(x), max(x)]
+    #     y_n = list(y_n) + [min(y), max(y)]
+    #     h_g, dens_cent_rad = dens_map(x_n, y_n, intens_acc_dens_acc[0])
+    #     ax4.imshow(h_g.transpose(), origin='lower', cmap=cm, aspect='auto')
+    #     # Print radii
+    #     for c_r in dens_cent_rad:
+    #         circle = plt.Circle((c_r[0], c_r[1]), c_r[2], color='r', lw=1.5,
+    #                             fill=False)
+    #         fig.gca().add_artist(circle)
+    #     # Add text box.
+    #     text = '4- Neighbor stars'
+    #     ob = offsetbox.AnchoredText(text, pad=0.5, loc=1, prop=dict(size=10))
+    #     ob.patch.set(alpha=0.5)
+    #     ax4.add_artist(ob)
 
     # Save plot to file.
     save_plot(f_name, 'voronoi', fig)
