@@ -2,6 +2,7 @@
 import numpy as np
 from math import hypot
 from save_to_file import save_to_log
+from percent_done import print_perc
 
 
 def in_radius(c_x, c_y, r, x, y):
@@ -13,6 +14,10 @@ def filt_density(f_name, fr_area, x_mr, y_mr, mag_mr, cent_rad, vor_flag,
     '''
     Apply density filter.
     '''
+
+    save_to_log(f_name, 'Obtaining groups densities', 'a')
+    tot_sols = len(cent_rad)
+    milestones = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
 
     # Frame's density.
     fr_dens_area = len(x_mr) / fr_area
@@ -39,6 +44,9 @@ def filt_density(f_name, fr_area, x_mr, y_mr, mag_mr, cent_rad, vor_flag,
             dens_accp_groups.append([c_x, c_y, r, clust_dens, clust_mags])
         else:
             dens_rej_groups.append([c_x, c_y, r, clust_dens, clust_mags])
+
+        # Print percentage done.
+        milestones = print_perc(i, tot_sols, milestones)
 
     # If the center coords and radii were read from file, obtain the min and
     # max fraction of mean Voronoi area for these clusters.
